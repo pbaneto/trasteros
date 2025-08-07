@@ -86,42 +86,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
     
     initializeAuth();
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-        
-        setLoading(true);
-        
-        if (session?.user) {
-          const profile = await loadUserProfile(session.user.id);
-          if (mounted) setUser(profile);
-        } else {
-          if (mounted) setUser(null);
-        }
-        
-        if (mounted) setLoading(false);
-      }
-    );
     
     return () => {
       mounted = false;
-      subscription.unsubscribe();
     };
   }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (error) {
+      setLoading(false);
       throw new Error(getErrorMessage(error));
     }
   };
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string, phone?: string) => {
     try {
+      setLoading(true);
+      
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -137,12 +122,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) throw error;
     } catch (error) {
+      setLoading(false);
       throw new Error(getErrorMessage(error));
     }
   };
 
   const signInWithGoogle = async () => {
     try {
+      setLoading(true);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -152,17 +140,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) throw error;
     } catch (error) {
+      setLoading(false);
       throw new Error(getErrorMessage(error));
     }
   };
 
   const signOut = async () => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      setUser(null);
     } catch (error) {
       console.error('Sign out error:', error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -183,7 +176,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signInWithGoogle,
     signOut,
     resetPassword,
-    setUser,
   };
 
   return (

@@ -60,7 +60,6 @@ export interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  setUser: (user: User | null) => void;
 }
 
 export interface PaymentMethod {

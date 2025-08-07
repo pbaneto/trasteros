@@ -53,9 +53,9 @@ export const RegisterForm: React.FC = () => {
     try {
       await signUp(data.email, data.password, data.firstName, data.lastName, data.phone);
       toast.success('¡Cuenta creada! Revisa tu email para confirmar tu cuenta.');
-      // The AuthContext will handle user state and navigation via PublicRoute
     } catch (error: any) {
       toast.error(error.message || 'Error al crear la cuenta');
+    } finally {
       setIsLoading(false);
     }
   };
