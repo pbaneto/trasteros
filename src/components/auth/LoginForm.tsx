@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ROUTES } from '../../utils/constants';
 import { GoogleButton } from './GoogleButton';
 
@@ -22,7 +22,6 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export const LoginForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
-  const navigate = useNavigate();
 
   const {
     register,
@@ -35,14 +34,11 @@ export const LoginForm: React.FC = () => {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      await signIn(data.email, data.password); 
-      console.log('Navigate to dashboard');
-      // navigate(ROUTES.DASHBOARD);
-      window.location.href = 'http://localhost:3000/dashboard';
+      await signIn(data.email, data.password);
       toast.success('¡Bienvenido de vuelta!');
+      // The AuthContext will handle user state and navigation via PublicRoute
     } catch (error: any) {
       toast.error(error.message || 'Error al iniciar sesión');
-    } finally {
       setIsLoading(false);
     }
   };

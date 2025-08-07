@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { GoogleAccountDetector } from './components/auth/GoogleAccountDetector';
 import { ROUTES } from './utils/constants';
 
 // Pages
@@ -74,103 +75,133 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   return <>{children}</>;
 };
 
+// Internal App component that has access to AuthContext
+const AppWithAuth: React.FC = () => {
+  const { user } = useAuth();
+  const [showGoogleDetector, setShowGoogleDetector] = useState(false);
+
+  useEffect(() => {
+    // Only show Google account detector if user is not logged in
+    // and we're not on auth pages
+    if (!user && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+      // Show the detector after a short delay to avoid immediate popup
+      const timer = setTimeout(() => {
+        setShowGoogleDetector(true);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
+
+  return (
+    <>
+      <Router>
+        <div className="App">
+          <Routes>
+            {/* Public Routes */}
+            <Route path={ROUTES.HOME} element={<HomePage />} />
+            
+            {/* Auth Routes - redirect to dashboard if already logged in */}
+            <Route 
+              path={ROUTES.LOGIN} 
+              element={
+                <PublicRoute>
+                  <LoginForm />
+                </PublicRoute>
+              } 
+            />
+            <Route 
+              path={ROUTES.REGISTER} 
+              element={
+                <PublicRoute>
+                  <RegisterForm />
+                </PublicRoute>
+              } 
+            />
+            <Route 
+              path={ROUTES.RESET_PASSWORD} 
+              element={
+                <PublicRoute>
+                  <PasswordReset />
+                </PublicRoute>
+              } 
+            />
+
+            {/* Protected Routes */}
+            <Route
+              path={ROUTES.DASHBOARD}
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/units"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/payments"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path={ROUTES.CHECKOUT}
+              element={
+                <ProtectedRoute>
+                  <CheckoutPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path={ROUTES.PROFILE}
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Catch all route - redirect to home */}
+            <Route path="*" element={<Navigate to={ROUTES.HOME} />} />
+          </Routes>
+
+          {/* Google Account Detector */}
+          {showGoogleDetector && (
+            <GoogleAccountDetector onClose={() => setShowGoogleDetector(false)} />
+          )}
+
+          {/* Toast Notifications */}
+          <ToastContainer
+            position="top-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
+        </div>
+      </Router>
+    </>
+  );
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router>
-          <div className="App">
-            <Routes>
-              {/* Public Routes */}
-              <Route path={ROUTES.HOME} element={<HomePage />} />
-              
-              {/* Auth Routes - redirect to dashboard if already logged in */}
-              <Route 
-                path={ROUTES.LOGIN} 
-                element={
-                  <PublicRoute>
-                    <LoginForm />
-                  </PublicRoute>
-                } 
-              />
-              <Route 
-                path={ROUTES.REGISTER} 
-                element={
-                  <PublicRoute>
-                    <RegisterForm />
-                  </PublicRoute>
-                } 
-              />
-              <Route 
-                path={ROUTES.RESET_PASSWORD} 
-                element={
-                  <PublicRoute>
-                    <PasswordReset />
-                  </PublicRoute>
-                } 
-              />
-
-              {/* Protected Routes */}
-              <Route
-                path={ROUTES.DASHBOARD}
-                element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/dashboard/units"
-                element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/dashboard/payments"
-                element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path={ROUTES.CHECKOUT}
-                element={
-                  <ProtectedRoute>
-                    <CheckoutPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path={ROUTES.PROFILE}
-                element={
-                  <ProtectedRoute>
-                    <ProfilePage />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Catch all route - redirect to home */}
-              <Route path="*" element={<Navigate to={ROUTES.HOME} />} />
-            </Routes>
-
-            {/* Toast Notifications */}
-            <ToastContainer
-              position="top-right"
-              autoClose={5000}
-              hideProgressBar={false}
-              newestOnTop={false}
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="light"
-            />
-          </div>
-        </Router>
+        <AppWithAuth />
       </AuthProvider>
     </QueryClientProvider>
   );
