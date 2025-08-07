@@ -129,10 +129,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) throw error;
       
-      // Update user state immediately after successful sign up (if user is confirmed)
+      // When email confirmation is enabled, data.session will be null
+      // Only set user state if session exists (user is already confirmed)
       if (data.user && data.session) {
         const profile = await loadUserProfile(data.user.id);
         setUser(profile);
+      } else {
+        // User created but needs email confirmation
+        setUser(null);
       }
       setLoading(false);
     } catch (error) {
@@ -186,6 +190,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const resendConfirmation = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email
+      });
+      if (error) throw error;
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  };
+
+  const verifyOTP = async (email: string, token: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'signup'
+      });
+      
+      if (error) throw error;
+      
+      // After successful OTP verification, load user profile
+      if (data.user && data.session) {
+        const profile = await loadUserProfile(data.user.id);
+        setUser(profile);
+      }
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      throw new Error(getErrorMessage(error));
+    }
+  };
+
   const value: AuthContextType = {
     user,
     loading,
@@ -194,6 +233,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signInWithGoogle,
     signOut,
     resetPassword,
+    resendConfirmation,
+    verifyOTP,
   };
 
   return (

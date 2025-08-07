@@ -34,4 +34,5 @@ export const ROUTES = {
   CHECKOUT: '/checkout',
   PROFILE: '/profile',
   RESET_PASSWORD: '/reset-password',
+  EMAIL_CONFIRMATION_PENDING: '/email-confirmation-pending',
 } as const;

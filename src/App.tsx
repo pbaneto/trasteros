@@ -17,6 +17,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { LoginForm } from './components/auth/LoginForm';
 import { RegisterForm } from './components/auth/RegisterForm';
 import { PasswordReset } from './components/auth/PasswordReset';
+import { EmailConfirmationPendingPage } from './pages/EmailConfirmationPendingPage';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -108,6 +109,12 @@ function App() {
                     <PasswordReset />
                   </PublicRoute>
                 } 
+              />
+              
+              {/* Email Confirmation Pending - Public route */}
+              <Route 
+                path={ROUTES.EMAIL_CONFIRMATION_PENDING} 
+                element={<EmailConfirmationPendingPage />} 
               />
 
               {/* Protected Routes */}

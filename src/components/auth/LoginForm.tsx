@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../utils/constants';
 import { GoogleButton } from './GoogleButton';
+import { PasswordInput } from '../layout/PasswordInput';
 
 const loginSchema = z.object({
   email: z.string()
@@ -85,15 +86,12 @@ export const LoginForm: React.FC = () => {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Contraseña
               </label>
-              <input
+              <PasswordInput
                 {...register('password')}
-                type="password"
-                className="input-field mt-1"
+                className="mt-1"
                 placeholder="••••••••"
+                error={errors.password?.message}
               />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-              )}
             </div>
           </div>
 

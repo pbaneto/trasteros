@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../utils/constants';
 import { GoogleButton } from './GoogleButton';
+import { PasswordInput } from '../layout/PasswordInput';
 
 const registerSchema = z.object({
   firstName: z.string()
@@ -53,8 +54,9 @@ export const RegisterForm: React.FC = () => {
     setIsLoading(true);
     try {
       await signUp(data.email, data.password, data.firstName, data.lastName, data.phone);
-      navigate(ROUTES.DASHBOARD);
-      toast.success('¡Cuenta creada! Revisa tu email para confirmar tu cuenta.');
+      navigate(ROUTES.EMAIL_CONFIRMATION_PENDING, { 
+        state: { email: data.email } 
+      });
     } catch (error: any) {
       toast.error(error.message || 'Error al crear la cuenta');
     } finally {
@@ -149,30 +151,24 @@ export const RegisterForm: React.FC = () => {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Contraseña
               </label>
-              <input
+              <PasswordInput
                 {...register('password')}
-                type="password"
-                className="input-field mt-1"
+                className="mt-1"
                 placeholder="••••••••"
+                error={errors.password?.message}
               />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-              )}
             </div>
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
                 Confirmar Contraseña
               </label>
-              <input
+              <PasswordInput
                 {...register('confirmPassword')}
-                type="password"
-                className="input-field mt-1"
+                className="mt-1"
                 placeholder="••••••••"
+                error={errors.confirmPassword?.message}
               />
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
-              )}
             </div>
 
             <div className="flex items-center">
