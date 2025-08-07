@@ -150,8 +150,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         options: {
           redirectTo: `${window.location.origin}/dashboard`,
           queryParams: {
-            prompt: 'select_account'
-          }
+            prompt: 'select_account consent'
+          }, 
+          scopes: 'openid email profile'
         }
       });
 
