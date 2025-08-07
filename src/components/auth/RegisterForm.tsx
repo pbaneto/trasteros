@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../utils/constants';
 import { GoogleButton } from './GoogleButton';
 
@@ -39,7 +39,8 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export const RegisterForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
-
+  const navigate = useNavigate();
+  
   const {
     register,
     handleSubmit,
@@ -52,6 +53,7 @@ export const RegisterForm: React.FC = () => {
     setIsLoading(true);
     try {
       await signUp(data.email, data.password, data.firstName, data.lastName, data.phone);
+      navigate(ROUTES.DASHBOARD);
       toast.success('¡Cuenta creada! Revisa tu email para confirmar tu cuenta.');
     } catch (error: any) {
       toast.error(error.message || 'Error al crear la cuenta');

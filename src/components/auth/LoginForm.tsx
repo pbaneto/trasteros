@@ -36,9 +36,7 @@ export const LoginForm: React.FC = () => {
     setIsLoading(true);
     try {
       await signIn(data.email, data.password); 
-      console.log('Navigate to dashboard');
-      // navigate(ROUTES.DASHBOARD);
-      window.location.href = 'http://localhost:3000/dashboard';
+      navigate(ROUTES.DASHBOARD);
       toast.success('¡Bienvenido de vuelta!');
     } catch (error: any) {
       toast.error(error.message || 'Error al iniciar sesión');

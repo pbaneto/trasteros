@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ResponsiveLayout } from '../components/layout/ResponsiveLayout';
 import { ROUTES, MONTHLY_PRICE, STORAGE_UNIT_SIZES } from '../utils/constants';
 import { formatPrice } from '../utils/stripe';

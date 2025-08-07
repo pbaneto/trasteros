@@ -7,6 +7,7 @@ import { ContractRenewal } from '../components/dashboard/ContractRenewal';
 import { UnitDetailsPanel } from '../components/storage/UnitDetailsPanel';
 import { Rental } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { Navigate } from 'react-router-dom';
 
 export const DashboardPage: React.FC = () => {
   const { user, loading } = useAuth();
@@ -14,11 +15,7 @@ export const DashboardPage: React.FC = () => {
   const [showQRModal, setShowQRModal] = useState(false);
   const [showRenewalModal, setShowRenewalModal] = useState(false);
   const [showDetailsPanel, setShowDetailsPanel] = useState(false);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
+    
   const handleViewDetails = (rental: Rental) => {
     setSelectedRental(rental);
     setShowDetailsPanel(true);

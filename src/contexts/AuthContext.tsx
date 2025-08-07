@@ -86,7 +86,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
     
     initializeAuth();
-    
+   
     return () => {
       mounted = false;
     };
@@ -95,8 +95,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      
+      // Update user state immediately after successful sign in
+      if (data.user) {
+        const profile = await loadUserProfile(data.user.id);
+        setUser(profile);
+      }
+      setLoading(false);
     } catch (error) {
       setLoading(false);
       throw new Error(getErrorMessage(error));
@@ -107,7 +114,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -121,6 +128,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
 
       if (error) throw error;
+      
+      // Update user state immediately after successful sign up (if user is confirmed)
+      if (data.user && data.session) {
+        const profile = await loadUserProfile(data.user.id);
+        setUser(profile);
+      }
+      setLoading(false);
     } catch (error) {
       setLoading(false);
       throw new Error(getErrorMessage(error));
