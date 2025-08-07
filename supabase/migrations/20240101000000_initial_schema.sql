@@ -1,4 +1,5 @@
 -- Initial schema for Trasteros storage rental app
+-- Combined migration including improved user profile trigger
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -124,21 +125,85 @@ CREATE POLICY "System can insert payments" ON payments
         )
     );
 
--- Function to automatically create user profile on signup
+-- Create a comprehensive function to handle user profile creation with OAuth support
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+    first_name_value TEXT;
+    last_name_value TEXT;
+    full_name TEXT;
+    name_parts TEXT[];
 BEGIN
-    INSERT INTO public.users_profile (id, email, first_name, last_name, phone, phone_verified)
-    VALUES (
+    -- Log the trigger execution
+    RAISE LOG 'Creating profile for user: %', NEW.id;
+    
+    -- Extract first name with multiple fallbacks
+    first_name_value := COALESCE(
+        NEW.raw_user_meta_data->>'first_name',     -- Regular signup
+        NEW.raw_user_meta_data->>'given_name',     -- Google OAuth
+        ''
+    );
+    
+    -- Extract last name with multiple fallbacks
+    last_name_value := COALESCE(
+        NEW.raw_user_meta_data->>'last_name',      -- Regular signup
+        NEW.raw_user_meta_data->>'family_name',    -- Google OAuth
+        ''
+    );
+    
+    -- If both names are empty, try to parse from full_name or name
+    IF first_name_value = '' AND last_name_value = '' THEN
+        full_name := COALESCE(
+            NEW.raw_user_meta_data->>'full_name',
+            NEW.raw_user_meta_data->>'name',
+            ''
+        );
+        
+        -- Split full name into parts if available
+        IF full_name != '' THEN
+            name_parts := string_to_array(trim(full_name), ' ');
+            
+            -- Extract first name (first part)
+            IF array_length(name_parts, 1) >= 1 THEN
+                first_name_value := name_parts[1];
+            END IF;
+            
+            -- Extract last name (remaining parts joined)
+            IF array_length(name_parts, 1) >= 2 THEN
+                last_name_value := array_to_string(name_parts[2:], ' ');
+            END IF;
+        END IF;
+    END IF;
+    
+    -- Trim whitespace and ensure non-null values
+    first_name_value := COALESCE(trim(first_name_value), '');
+    last_name_value := COALESCE(trim(last_name_value), '');
+    
+    -- Insert the user profile, ignore if it already exists
+    INSERT INTO public.users_profile (
+        id, 
+        email, 
+        first_name, 
+        last_name, 
+        phone, 
+        phone_verified
+    ) VALUES (
         NEW.id, 
         NEW.email,
-        COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
-        COALESCE(NEW.raw_user_meta_data->>'last_name', ''),
+        first_name_value,
+        last_name_value,
         NEW.raw_user_meta_data->>'phone',
         false
-    )
-    ON CONFLICT (id) DO NOTHING;
+    ) ON CONFLICT (id) DO NOTHING;
+    
+    RAISE LOG 'Profile created for user % with names: "%" "%"', NEW.id, first_name_value, last_name_value;
+    
     RETURN NEW;
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Log the error but don't fail the auth user creation
+        RAISE WARNING 'Error creating profile for user %: %', NEW.id, SQLERRM;
+        RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -146,7 +211,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
-    FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Add a comment explaining the trigger
+COMMENT ON FUNCTION public.handle_new_user() IS 'Enhanced user profile creation trigger supporting OAuth providers (Google, etc.) with comprehensive name field mapping';
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
