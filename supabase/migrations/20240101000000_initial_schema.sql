@@ -128,8 +128,16 @@ CREATE POLICY "System can insert payments" ON payments
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO public.users_profile (id, email)
-    VALUES (NEW.id, NEW.email);
+    INSERT INTO public.users_profile (id, email, first_name, last_name, phone, phone_verified)
+    VALUES (
+        NEW.id, 
+        NEW.email,
+        COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
+        COALESCE(NEW.raw_user_meta_data->>'last_name', ''),
+        NEW.raw_user_meta_data->>'phone',
+        false
+    )
+    ON CONFLICT (id) DO NOTHING;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

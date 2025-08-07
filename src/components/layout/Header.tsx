@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 export const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -30,13 +30,19 @@ export const Header: React.FC = () => {
               <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">T</span>
               </div>
-              <span className="ml-2 text-xl font-bold text-gray-900">Trasteros</span>
+              <span className="ml-2 text-xl font-bold text-gray-900">Trasteros Las Rozas</span>
             </Link>
           </div>
 
           {/* User Menu or Auth Buttons */}
           <div className="flex items-center space-x-4">
-            {user ? (
+            {loading ? (
+              /* Loading state */
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+                <div className="hidden md:block w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            ) : user ? (
               <div className="relative">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}

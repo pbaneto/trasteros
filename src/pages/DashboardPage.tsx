@@ -9,11 +9,15 @@ import { Rental } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
 export const DashboardPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
   const [showQRModal, setShowQRModal] = useState(false);
   const [showRenewalModal, setShowRenewalModal] = useState(false);
   const [showDetailsPanel, setShowDetailsPanel] = useState(false);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   const handleViewDetails = (rental: Rental) => {
     setSelectedRental(rental);

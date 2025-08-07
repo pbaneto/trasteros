@@ -1,10 +1,15 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ResponsiveLayout } from '../components/layout/ResponsiveLayout';
 import { ROUTES, MONTHLY_PRICE, STORAGE_UNIT_SIZES } from '../utils/constants';
 import { formatPrice } from '../utils/stripe';
+import { useAuth } from '../contexts/AuthContext';
+import { useStorageUnits } from '../hooks/useStorageUnits';
 
 export const HomePage: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { availability, loading: unitsLoading, error: unitsError } = useStorageUnits();
   const features = [
     {
       name: 'Acceso 24/7',
@@ -45,71 +50,58 @@ export const HomePage: React.FC = () => {
   ];
 
   const sizes = [
-    { ...STORAGE_UNIT_SIZES.SMALL, description: 'Perfecto para cajas y objetos pequeños' },
-    { ...STORAGE_UNIT_SIZES.MEDIUM, description: 'Ideal para muebles y electrodomésticos' },
-    { ...STORAGE_UNIT_SIZES.LARGE, description: 'Espacio amplio para mudanzas completas' },
+    { 
+      ...STORAGE_UNIT_SIZES.SMALL, 
+      description: 'Perfecto para cajas y objetos pequeños',
+      availability: availability.find(a => a.size === 2)
+    },
+    { 
+      ...STORAGE_UNIT_SIZES.MEDIUM, 
+      description: 'Ideal para muebles y electrodomésticos',
+      availability: availability.find(a => a.size === 4)
+    },
+    { 
+      ...STORAGE_UNIT_SIZES.LARGE, 
+      description: 'Espacio amplio para mudanzas completas',
+      availability: availability.find(a => a.size === 6)
+    },
   ];
 
   return (
     <ResponsiveLayout>
       {/* Hero Section */}
-      <div className="relative bg-white overflow-hidden">
+      <div className="relative bg-gradient-to-br from-primary-500 to-primary-700 overflow-hidden">
         <div className="max-w-7xl mx-auto">
-          <div className="relative z-10 pb-8 bg-white sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
-            <svg
-              className="hidden lg:block absolute right-0 inset-y-0 h-full w-48 text-white transform translate-x-1/2"
-              fill="currentColor"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-              aria-hidden="true"
-            >
-              <polygon points="50,0 100,0 50,100 0,100" />
-            </svg>
-
-            <main className="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
-              <div className="sm:text-center lg:text-left">
-                <h1 className="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
-                  <span className="block xl:inline">Almacenamiento</span>{' '}
-                  <span className="block text-primary-600 xl:inline">seguro y accesible</span>
-                </h1>
-                <p className="mt-3 text-base text-gray-500 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
-                  Alquila tu trastero de forma rápida y sencilla. Acceso 24/7, 
-                  códigos digitales y la mejor seguridad para tus pertenencias.
-                </p>
-                <div className="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
-                  <div className="rounded-md shadow">
-                    <button
-                      onClick={() => document.getElementById('sizes-section')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 md:py-4 md:text-lg md:px-10"
-                    >
-                      Ver Trasteros Disponibles
-                    </button>
-                  </div>
-                  <div className="mt-3 sm:mt-0 sm:ml-3">
-                    <button
-                      onClick={() => document.getElementById('sizes-section')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 md:py-4 md:text-lg md:px-10"
-                    >
-                      Ver Precios
-                    </button>
-                  </div>
+          <main className="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28 pb-8 sm:pb-16 md:pb-20 lg:pb-28 xl:pb-32">
+            <div className="text-center">
+              <h1 className="text-4xl tracking-tight font-extrabold text-white sm:text-5xl md:text-6xl">
+                <span className="block xl:inline">Almacenamiento</span>{' '}
+                <span className="block xl:inline">seguro y accesible</span>
+              </h1>
+              <p className="mt-3 text-base text-primary-100 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl">
+                Alquila tu trastero de forma rápida y sencilla. Acceso 24/7, 
+                códigos digitales y la mejor seguridad para tus pertenencias.
+              </p>
+              <div className="mt-5 sm:mt-8 sm:flex sm:justify-center">
+                <div className="rounded-md shadow">
+                  <button
+                    onClick={() => document.getElementById('sizes-section')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-primary-600 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10"
+                  >
+                    Alquila un trastero
+                  </button>
+                </div>
+                <div className="mt-3 sm:mt-0 sm:ml-3">
+                  <button
+                    onClick={() => user ? navigate('/dashboard/units') : navigate(ROUTES.LOGIN)}
+                    className="w-full flex items-center justify-center px-8 py-3 border-2 border-white text-base font-medium rounded-md text-white bg-transparent hover:bg-white hover:text-primary-600 md:py-4 md:text-lg md:px-10"
+                  >
+                    Mis trasteros
+                  </button>
                 </div>
               </div>
-            </main>
-          </div>
-        </div>
-        <div className="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2">
-          <div className="h-56 w-full bg-gradient-to-br from-primary-400 to-primary-600 sm:h-72 md:h-96 lg:w-full lg:h-full flex items-center justify-center">
-            <div className="text-center text-white">
-              <div className="w-24 h-24 mx-auto bg-white bg-opacity-20 rounded-2xl flex items-center justify-center mb-4">
-                <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4m0 0v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-bold mb-2">Desde {formatPrice(MONTHLY_PRICE)}/mes</h3>
-              <p className="text-primary-100">Sin permanencia • Acceso 24/7</p>
             </div>
-          </div>
+          </main>
         </div>
       </div>
 
@@ -189,12 +181,50 @@ export const HomePage: React.FC = () => {
                     <div className="text-gray-500">por mes</div>
                   </div>
 
-                  <Link
-                    to={ROUTES.DASHBOARD}
-                    className="w-full btn-primary text-center"
+                  {/* Availability info */}
+                  <div className="text-center mb-4">
+                    {unitsLoading ? (
+                      <div className="text-gray-500">Cargando disponibilidad...</div>
+                    ) : unitsError ? (
+                      <div className="text-red-500 text-sm">Error cargando disponibilidad</div>
+                    ) : size.availability ? (
+                      <div className={`text-sm font-medium ${
+                        size.availability.availableCount > 0 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {size.availability.availableCount > 0 
+                          ? `${size.availability.availableCount} disponibles`
+                          : 'No disponible'
+                        }
+                      </div>
+                    ) : (
+                      <div className="text-gray-500">-</div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (user) {
+                        navigate(`${ROUTES.CHECKOUT}?size=${size.size}`);
+                      } else {
+                        navigate(ROUTES.LOGIN);
+                      }
+                    }}
+                    disabled={unitsLoading || (size.availability && size.availability.availableCount === 0)}
+                    className={`w-full text-center px-4 py-3 rounded-md font-medium transition-colors ${
+                      unitsLoading || (size.availability && size.availability.availableCount === 0)
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-primary-600 text-white hover:bg-primary-700'
+                    }`}
                   >
-                    Reservar Ahora
-                  </Link>
+                    {unitsLoading 
+                      ? 'Cargando...'
+                      : size.availability && size.availability.availableCount === 0
+                        ? 'No Disponible'
+                        : 'Reservar Ahora'
+                    }
+                  </button>
                 </div>
               </div>
             ))}
