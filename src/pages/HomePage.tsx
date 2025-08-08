@@ -93,7 +93,7 @@ export const HomePage: React.FC = () => {
                 </div>
                 <div className="mt-3 sm:mt-0 sm:ml-3">
                   <button
-                    onClick={() => user ? navigate('/dashboard/units') : navigate(ROUTES.LOGIN)}
+                    onClick={() => user ? navigate(ROUTES.CHECKOUT) : navigate(ROUTES.LOGIN)}
                     className="w-full flex items-center justify-center px-8 py-3 border-2 border-white text-base font-medium rounded-md text-white bg-transparent hover:bg-white hover:text-primary-600 md:py-4 md:text-lg md:px-10"
                   >
                     Mis trasteros

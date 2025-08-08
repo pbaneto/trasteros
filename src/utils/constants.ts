@@ -5,6 +5,16 @@ export const STORAGE_UNIT_SIZES = {
 } as const;
 
 export const MONTHLY_PRICE = 45;
+
+export const INSURANCE_OPTIONS = [
+  { id: 'none', label: 'Sin seguro', price: 0, coverage: 0 },
+  { id: 'basic', label: 'Básico - €2,000', price: 15, coverage: 2000 },
+  { id: 'standard', label: 'Estándar - €4,000', price: 20, coverage: 4000 },
+  { id: 'premium', label: 'Premium - €8,000', price: 30, coverage: 8000 },
+  { id: 'complete', label: 'Completo - €15,000', price: 45, coverage: 15000 },
+] as const;
+
+// Legacy constants for compatibility
 export const INSURANCE_PRICE = 20;
 export const INSURANCE_COVERAGE = 4000;
 

@@ -341,6 +341,23 @@ export const UserProfile: React.FC = () => {
                     {isLoading ? 'Actualizando...' : 'Actualizar Contraseña'}
                   </button>
                 </div>
+                {/* Danger Zone */}
+                <div className="border-t border-gray-200 px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Elimina permanentemente tu cuenta y todos tus datos asociados.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={isLoading}
+                      className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Eliminar Cuenta
+                    </button>
+                  </div>
+                </div>
               </form>
             </div>
           )}
@@ -402,26 +419,6 @@ export const UserProfile: React.FC = () => {
           )}
         </div>
 
-        {/* Danger Zone */}
-        <div className="border-t border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="text-sm font-medium text-gray-900">
-                Eliminar Cuenta
-              </h4>
-              <p className="text-sm text-gray-500">
-                Elimina permanentemente tu cuenta y todos tus datos asociados.
-              </p>
-            </div>
-            <button
-              onClick={handleDeleteAccount}
-              disabled={isLoading}
-              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Eliminar Cuenta
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

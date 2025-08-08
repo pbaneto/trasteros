@@ -127,14 +127,6 @@ function App() {
                 }
               />
               <Route
-                path="/dashboard/units"
-                element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="/dashboard/payments"
                 element={
                   <ProtectedRoute>

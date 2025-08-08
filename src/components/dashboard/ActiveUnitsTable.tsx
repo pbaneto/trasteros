@@ -122,10 +122,10 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
             <div className="mt-6">
               <button
                 type="button"
-                onClick={() => window.location.href = '/units'}
+                onClick={() => window.location.href = '/checkout'}
                 className="btn-primary"
               >
-                Explorar Trasteros
+                Reservar trastero
               </button>
             </div>
           </div>
