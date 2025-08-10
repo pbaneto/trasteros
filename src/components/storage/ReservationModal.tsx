@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StorageUnit } from '../../types';
 import { formatPrice } from '../../utils/stripe';
-import { MONTHLY_PRICE, INSURANCE_PRICE, INSURANCE_COVERAGE } from '../../utils/constants';
+import { UNIT_PRICE, INSURANCE_PRICE, INSURANCE_COVERAGE } from '../../utils/constants';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../utils/constants';
@@ -25,7 +25,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
 
   if (!isOpen) return null;
 
-  const totalPrice = MONTHLY_PRICE + (includeInsurance ? INSURANCE_PRICE : 0);
+  const totalPrice = UNIT_PRICE + (includeInsurance ? INSURANCE_PRICE : 0);
 
   const handleProceed = () => {
     if (!user) {
@@ -39,7 +39,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       unitNumber: unit.unitNumber,
       unitSize: unit.sizeM2,
       includeInsurance,
-      monthlyPrice: MONTHLY_PRICE,
+      price: UNIT_PRICE,
       insurancePrice: includeInsurance ? INSURANCE_PRICE : 0,
       totalPrice,
     }));
@@ -81,9 +81,9 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                       <span className="text-sm text-gray-900">{unit.locationDescription}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-700">Precio mensual:</span>
+                      <span className="text-sm font-medium text-gray-700">Precio:</span>
                       <span className="text-sm font-semibold text-gray-900">
-                        {formatPrice(MONTHLY_PRICE)}
+                        {formatPrice(UNIT_PRICE)}
                       </span>
                     </div>
                   </div>
@@ -102,7 +102,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                           Seguro de contenido
                         </div>
                         <div className="text-sm text-gray-500">
-                          Cobertura hasta {formatPrice(INSURANCE_COVERAGE)} por {formatPrice(INSURANCE_PRICE)}/mes
+                          Cobertura hasta {formatPrice(INSURANCE_COVERAGE)} por {formatPrice(INSURANCE_PRICE)}
                         </div>
                       </div>
                     </label>
@@ -111,7 +111,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                   {/* Total */}
                   <div className="border-t border-gray-200 pt-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-base font-medium text-gray-900">Total mensual:</span>
+                      <span className="text-base font-medium text-gray-900">Total:</span>
                       <span className="text-lg font-bold text-primary-600">
                         {formatPrice(totalPrice)}
                       </span>

@@ -4,7 +4,7 @@ import { UserProfile } from '../components/dashboard/UserProfile';
 
 export const ProfilePage: React.FC = () => {
   return (
-    <ResponsiveLayout showSidebar title="Mi Perfil">
+    <ResponsiveLayout title="Mi Perfil">
       <UserProfile />
     </ResponsiveLayout>
   );

@@ -6,17 +6,15 @@ import { es } from 'date-fns/locale';
 
 interface UnitDetailsPanelProps {
   rental: Rental;
-  onGenerateQR?: () => void;
   onRenew?: () => void;
 }
 
 export const UnitDetailsPanel: React.FC<UnitDetailsPanelProps> = ({
   rental,
-  onGenerateQR,
   onRenew,
 }) => {
   const isActive = rental.status === 'active';
-  const isExpiringSoon = isActive && new Date(rental.endDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const isExpiringSoon = isActive && rental.endDate && new Date(rental.endDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
@@ -54,21 +52,21 @@ export const UnitDetailsPanel: React.FC<UnitDetailsPanelProps> = ({
               <div className="flex justify-between">
                 <span className="text-sm font-medium text-gray-500">Fecha de inicio:</span>
                 <span className="text-sm text-gray-900">
-                  {format(new Date(rental.startDate), 'dd MMMM yyyy', { locale: es })}
+                  {rental.startDate ? format(new Date(rental.startDate), 'dd MMMM yyyy', { locale: es }) : 'No definido'}
                 </span>
               </div>
               
               <div className="flex justify-between">
                 <span className="text-sm font-medium text-gray-500">Fecha de vencimiento:</span>
                 <span className={`text-sm font-medium ${isExpiringSoon ? 'text-orange-600' : 'text-gray-900'}`}>
-                  {format(new Date(rental.endDate), 'dd MMMM yyyy', { locale: es })}
+                  {rental.endDate ? format(new Date(rental.endDate), 'dd MMMM yyyy', { locale: es }) : 'No definido'}
                 </span>
               </div>
               
               <div className="flex justify-between">
-                <span className="text-sm font-medium text-gray-500">Precio mensual:</span>
+                <span className="text-sm font-medium text-gray-500">Precio pagado:</span>
                 <span className="text-sm font-semibold text-gray-900">
-                  {formatPrice(rental.monthlyPrice)}
+                  {formatPrice(rental.price)}
                 </span>
               </div>
               
@@ -76,7 +74,7 @@ export const UnitDetailsPanel: React.FC<UnitDetailsPanelProps> = ({
                 <div className="flex justify-between">
                   <span className="text-sm font-medium text-gray-500">Seguro:</span>
                   <span className="text-sm text-gray-900">
-                    {formatPrice(rental.insuranceAmount)} / mes
+                    {formatPrice(rental.insuranceAmount)}
                   </span>
                 </div>
               )}
@@ -116,19 +114,6 @@ export const UnitDetailsPanel: React.FC<UnitDetailsPanelProps> = ({
                   </div>
                 )}
                 
-                <div className="flex space-x-3">
-                  {onGenerateQR && (
-                    <button
-                      onClick={onGenerateQR}
-                      className="flex-1 btn-secondary text-sm"
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11V9l-6 6-6-6v7a1 1 0 001 1h10a1 1 0 001-1z" />
-                      </svg>
-                      Código QR
-                    </button>
-                  )}
-                </div>
 
                 <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded-lg">
                   <div className="flex items-start">

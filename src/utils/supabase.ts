@@ -27,7 +27,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: typeof window !== 'undefined',
     detectSessionInUrl: typeof window !== 'undefined',
     flowType: 'pkce', // Use PKCE flow for better security
-    debug: process.env.NODE_ENV === 'development'
+    debug: false
   },
   global: {
     headers: {

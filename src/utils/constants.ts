@@ -4,7 +4,7 @@ export const STORAGE_UNIT_SIZES = {
   LARGE: { size: 6, label: '6m²' },
 } as const;
 
-export const MONTHLY_PRICE = 45;
+export const UNIT_PRICE = 45;
 
 export const INSURANCE_OPTIONS = [
   { id: 'none', label: 'Sin seguro', price: 0, coverage: 0 },
@@ -41,6 +41,7 @@ export const ROUTES = {
   LOGIN: '/login',
   REGISTER: '/register',
   DASHBOARD: '/dashboard',
+  DASHBOARD_PAYMENTS: '/dashboard/payments',
   CHECKOUT: '/checkout',
   PROFILE: '/profile',
   RESET_PASSWORD: '/reset-password',

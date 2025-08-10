@@ -24,9 +24,9 @@ export const ContractRenewal: React.FC<ContractRenewalProps> = ({
 
   if (!isOpen) return null;
 
-  const currentEndDate = new Date(rental.endDate);
+  const currentEndDate = rental.endDate ? new Date(rental.endDate) : new Date();
   const newEndDate = addMonths(currentEndDate, renewalPeriod);
-  const totalPrice = (rental.monthlyPrice + (rental.insuranceAmount || 0)) * renewalPeriod;
+  const totalPrice = (rental.price + (rental.insuranceAmount || 0)) * renewalPeriod;
 
   const renewalOptions = [
     { months: 1, label: '1 mes', discount: 0 },
@@ -139,12 +139,12 @@ export const ContractRenewal: React.FC<ContractRenewalProps> = ({
                       <div className="flex justify-between">
                         <span>Vence el:</span>
                         <span className="font-medium">
-                          {format(currentEndDate, 'dd MMMM yyyy', { locale: es })}
+                          {rental.endDate ? format(currentEndDate, 'dd MMMM yyyy', { locale: es }) : 'No definido'}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Precio mensual:</span>
-                        <span>{formatPrice(rental.monthlyPrice + (rental.insuranceAmount || 0))}</span>
+                        <span>Precio pagado:</span>
+                        <span>{formatPrice(rental.price + (rental.insuranceAmount || 0))}</span>
                       </div>
                     </div>
                   </div>
@@ -155,7 +155,7 @@ export const ContractRenewal: React.FC<ContractRenewalProps> = ({
                       Período de renovación
                     </h4>
                     {renewalOptions.map((option) => {
-                      const originalPrice = (rental.monthlyPrice + (rental.insuranceAmount || 0)) * option.months;
+                      const originalPrice = (rental.price + (rental.insuranceAmount || 0)) * option.months;
                       const discountedPrice = getDiscountedPrice(originalPrice, option.discount);
                       const savings = originalPrice - discountedPrice;
 

@@ -6,11 +6,11 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ROUTES } from './utils/constants';
+import { LoadingSpinner } from './components/ui/LoadingSpinner';
 
 // Pages
 import { HomePage } from './pages/HomePage';
 import { DashboardPage } from './pages/DashboardPage';
-import { CheckoutPage } from './pages/CheckoutPage';
 import { ProfilePage } from './pages/ProfilePage';
 
 // Auth Components
@@ -40,7 +40,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
@@ -63,7 +63,7 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
@@ -127,18 +127,10 @@ function App() {
                 }
               />
               <Route
-                path="/dashboard/payments"
+                path={ROUTES.DASHBOARD_PAYMENTS}
                 element={
                   <ProtectedRoute>
                     <DashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path={ROUTES.CHECKOUT}
-                element={
-                  <ProtectedRoute>
-                    <CheckoutPage />
                   </ProtectedRoute>
                 }
               />

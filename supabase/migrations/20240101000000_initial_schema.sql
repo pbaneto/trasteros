@@ -1,5 +1,5 @@
 -- Initial schema for Trasteros storage rental app
--- Combined migration including improved user profile trigger
+-- Combined migration with one-time pricing and no QR codes
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS storage_units (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     unit_number VARCHAR(10) UNIQUE NOT NULL,
     size_m2 INTEGER NOT NULL CHECK (size_m2 IN (2, 4, 6)),
-    monthly_price DECIMAL(10,2) NOT NULL DEFAULT 45.00,
+    price DECIMAL(10,2) NOT NULL DEFAULT 45.00,
     status VARCHAR(20) DEFAULT 'available' CHECK (status IN ('available', 'occupied', 'maintenance')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
@@ -33,12 +33,11 @@ CREATE TABLE IF NOT EXISTS rentals (
     unit_id UUID REFERENCES storage_units(id) ON DELETE CASCADE,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
-    monthly_price DECIMAL(10,2) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
     insurance_amount DECIMAL(10,2) DEFAULT 0.00,
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'expired', 'cancelled')),
-    stripe_subscription_id VARCHAR(255),
+    stripe_payment_intent_id VARCHAR(255),
     ttlock_code VARCHAR(20),
-    qr_code_data TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
@@ -97,28 +96,36 @@ CREATE POLICY "Only admins can modify storage units" ON storage_units
     );
 
 -- Rentals are only accessible to the rental owner
-CREATE POLICY "Users can view own rentals" ON rentals
-    FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users and service role can view rentals" ON rentals
+    FOR SELECT USING (
+        current_setting('role') = 'service_role'
+        OR auth.uid() = user_id
+    );
 
-CREATE POLICY "Users can insert own rentals" ON rentals
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users and service role can insert rentals" ON rentals
+    FOR INSERT WITH CHECK (
+        current_setting('role') = 'service_role' 
+        OR auth.uid() = user_id
+    );
 
 CREATE POLICY "Users can update own rentals" ON rentals
     FOR UPDATE USING (auth.uid() = user_id);
 
 -- Payments are only accessible to the rental owner
-CREATE POLICY "Users can view own payments" ON payments
+CREATE POLICY "Users and service role can view payments" ON payments
     FOR SELECT USING (
-        EXISTS (
+        current_setting('role') = 'service_role'
+        OR EXISTS (
             SELECT 1 FROM rentals 
             WHERE rentals.id = payments.rental_id 
             AND rentals.user_id = auth.uid()
         )
     );
 
-CREATE POLICY "System can insert payments" ON payments
+CREATE POLICY "System and service role can insert payments" ON payments
     FOR INSERT WITH CHECK (
-        EXISTS (
+        current_setting('role') = 'service_role'
+        OR EXISTS (
             SELECT 1 FROM rentals 
             WHERE rentals.id = payments.rental_id 
             AND rentals.user_id = auth.uid()
@@ -233,3 +240,7 @@ CREATE TRIGGER update_users_profile_updated_at
 CREATE TRIGGER update_rentals_updated_at
     BEFORE UPDATE ON rentals
     FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- Add comments to clarify pricing model
+COMMENT ON COLUMN storage_units.price IS 'One-time rental price in euros';
+COMMENT ON COLUMN rentals.price IS 'One-time rental price paid for this rental in euros';

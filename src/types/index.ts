@@ -13,7 +13,7 @@ export interface StorageUnit {
   id: string;
   unitNumber: string;
   sizeM2: number;
-  monthlyPrice: number;
+  price: number;
   status: 'available' | 'occupied' | 'maintenance';
   locationDescription: string;
   createdAt: string;
@@ -25,13 +25,13 @@ export interface Rental {
   unitId: string;
   startDate: string;
   endDate: string;
-  monthlyPrice: number;
+  price: number;
   insuranceAmount: number;
   status: 'active' | 'expired' | 'cancelled';
-  stripeSubscriptionId?: string;
+  stripePaymentIntentId?: string;
   ttlockCode?: string;
-  qrCodeData?: string;
   createdAt: string;
+  updatedAt: string;
   unit?: StorageUnit;
 }
 
@@ -46,8 +46,8 @@ export interface Payment {
   rental?: {
     id: string;
     unit?: {
-      unit_number: string;
-      size_m2: number;
+      unitNumber: string;
+      sizeM2: number;
     };
   };
 }
@@ -79,9 +79,3 @@ export interface CheckoutData {
   includeInsurance: boolean;
 }
 
-export interface QRCodeData {
-  rentalId: string;
-  unitNumber: string;
-  accessCode: string;
-  expiresAt: string;
-}

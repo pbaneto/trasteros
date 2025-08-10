@@ -53,7 +53,7 @@ src/
 
 ### Database Schema
 - `users_profile` - Extended user profiles (linked to auth.users)
-- `storage_units` - Available units (2m², 4m², 6m² at €45/month)
+- `storage_units` - Available units (2m², 4m², 6m² at €45 one-time)
 - `rentals` - User rental records with access codes
 - `payments` - Payment transaction history
 
@@ -82,7 +82,7 @@ src/
 4. JWT-based session management with localStorage persistence
 
 ### Payment Processing
-1. Unit selection with optional insurance (€20/month for €4000 coverage)
+1. Unit selection with optional insurance (€20 one-time for €4000 coverage)
 2. Stripe payment processing with stored payment methods
-3. Subscription management for recurring payments
+3. One-time payment processing
 4. Access code generation upon successful payment

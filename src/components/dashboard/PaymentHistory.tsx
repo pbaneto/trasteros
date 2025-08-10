@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'react-toastify';
+import { transformPayments } from '../../utils/mappers';
 
 interface PaymentHistoryProps {
   rentalId?: string; // Optional filter by specific rental
@@ -59,7 +60,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ rentalId }) => {
 
       if (error) throw error;
 
-      setPayments(data || []);
+      setPayments(transformPayments(data || []));
     } catch (error: any) {
       toast.error('Error al cargar el historial de pagos');
       console.error('Error fetching payments:', error);
@@ -209,20 +210,20 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ rentalId }) => {
             {payments.map((payment) => (
               <tr key={payment.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {format(new Date(payment.paymentDate), 'dd MMM yyyy HH:mm', { locale: es })}
+                  {payment.paymentDate ? format(new Date(payment.paymentDate), 'dd MMM yyyy HH:mm', { locale: es }) : 'No definido'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-8 w-8">
                       <div className="h-8 w-8 rounded bg-primary-100 flex items-center justify-center">
                         <span className="text-xs font-medium text-primary-600">
-                          {payment.rental?.unit?.size_m2}m²
+                          {payment.rental?.unit?.sizeM2}m²
                         </span>
                       </div>
                     </div>
                     <div className="ml-3">
                       <div className="text-sm font-medium text-gray-900">
-                        Trastero {payment.rental?.unit?.unit_number}
+                        Trastero {payment.rental?.unit?.unitNumber}
                       </div>
                     </div>
                   </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
 import { StorageUnit } from '../types';
+import { transformStorageUnits } from '../utils/mappers';
 
 interface StorageUnitAvailability {
   size: number;
@@ -34,11 +35,12 @@ export const useStorageUnits = () => {
           throw error;
         }
 
-        setStorageUnits(data || []);
+        const transformedUnits = transformStorageUnits(data || []);
+        setStorageUnits(transformedUnits);
 
         // Calculate availability by size
         const availabilityBySize = [2, 4, 6].map(size => {
-          const unitsOfSize = data?.filter(unit => unit.size_m2 === size) || [];
+          const unitsOfSize = transformedUnits.filter(unit => unit.sizeM2 === size);
           const availableUnits = unitsOfSize.filter(unit => unit.status === 'available');
           
           return {

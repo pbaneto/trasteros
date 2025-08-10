@@ -6,15 +6,18 @@ import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'react-toastify';
+import { transformRentals } from '../../utils/mappers';
 
 interface ActiveUnitsTableProps {
   onViewDetails?: (rental: Rental) => void;
   onGenerateQR?: (rental: Rental) => void;
+  onReserveUnit?: () => void;
 }
 
 export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
   onViewDetails,
   onGenerateQR,
+  onReserveUnit,
 }) => {
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +42,7 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
 
       if (error) throw error;
 
-      setRentals(data || []);
+      setRentals(transformRentals(data || []));
     } catch (error: any) {
       toast.error('Error al cargar tus trasteros');
       console.error('Error fetching rentals:', error);
@@ -74,8 +77,10 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
     }
   };
 
-  const isExpiringSoon = (endDate: string) => {
-    const expiry = new Date(endDate);
+  const isExpiringSoon = (endDate: string | null | undefined) => {
+    if (!endDate) return false;
+    const expiry = new Date(endDate + 'T00:00:00');
+    if (isNaN(expiry.getTime())) return false;
     const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     return expiry <= thirtyDaysFromNow;
   };
@@ -122,7 +127,7 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
             <div className="mt-6">
               <button
                 type="button"
-                onClick={() => window.location.href = '/checkout'}
+                onClick={onReserveUnit}
                 className="btn-primary"
               >
                 Reservar trastero
@@ -134,6 +139,7 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
     );
   }
 
+  console.log('Rentals:', rentals)
   return (
     <div className="bg-white shadow rounded-lg overflow-hidden">
       <div className="px-4 py-5 sm:px-6">
@@ -202,14 +208,14 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   <div className={isExpiringSoon(rental.endDate) ? 'text-orange-600 font-medium' : ''}>
-                    {format(new Date(rental.endDate), 'dd MMM yyyy', { locale: es })}
+                    {rental.endDate ? format(new Date(rental.endDate + 'T00:00:00'), 'dd MMM yyyy', { locale: es }) : 'No definido'}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   <div className="font-medium">
-                    {formatPrice(rental.monthlyPrice + (rental.insuranceAmount || 0))}
+                    {formatPrice(rental.price + (rental.insuranceAmount || 0))}
                   </div>
-                  <div className="text-xs text-gray-500">por mes</div>
+                  <div className="text-xs text-gray-500">pago único</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end space-x-2">
@@ -217,10 +223,10 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
                       <button
                         onClick={() => onGenerateQR(rental)}
                         className="text-primary-600 hover:text-primary-900"
-                        title="Generar código QR"
+                        title="Ver código de acceso"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11V9l-6 6-6-6v7a1 1 0 001 1h10a1 1 0 001-1z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                         </svg>
                       </button>
                     )}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ResponsiveLayout } from '../components/layout/ResponsiveLayout';
-import { ROUTES, MONTHLY_PRICE, STORAGE_UNIT_SIZES } from '../utils/constants';
+import { ROUTES, UNIT_PRICE, STORAGE_UNIT_SIZES } from '../utils/constants';
 import { formatPrice } from '../utils/stripe';
 import { useAuth } from '../contexts/AuthContext';
 import { useStorageUnits } from '../hooks/useStorageUnits';
@@ -22,7 +22,7 @@ export const HomePage: React.FC = () => {
     },
     {
       name: 'Código Digital',
-      description: 'Acceso mediante código digital o QR desde tu móvil.',
+      description: 'Acceso mediante código digital.',
       icon: (
         <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -93,7 +93,7 @@ export const HomePage: React.FC = () => {
                 </div>
                 <div className="mt-3 sm:mt-0 sm:ml-3">
                   <button
-                    onClick={() => user ? navigate(ROUTES.CHECKOUT) : navigate(ROUTES.LOGIN)}
+                    onClick={() => user ? navigate(ROUTES.DASHBOARD) : navigate(ROUTES.LOGIN)}
                     className="w-full flex items-center justify-center px-8 py-3 border-2 border-white text-base font-medium rounded-md text-white bg-transparent hover:bg-white hover:text-primary-600 md:py-4 md:text-lg md:px-10"
                   >
                     Mis trasteros
@@ -176,9 +176,9 @@ export const HomePage: React.FC = () => {
                 <div className="px-6 py-6">
                   <div className="text-center mb-6">
                     <div className="text-3xl font-bold text-primary-600">
-                      {formatPrice(MONTHLY_PRICE)}
+                      {formatPrice(UNIT_PRICE)}
                     </div>
-                    <div className="text-gray-500">por mes</div>
+                    <div className="text-gray-500">pago único</div>
                   </div>
 
                   {/* Availability info */}

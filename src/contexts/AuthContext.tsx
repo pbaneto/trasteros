@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../utils/supabase';
 import type { User, AuthContextType } from '../types';
+import { transformUser } from '../utils/mappers';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -49,16 +50,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return null;
       }
 
-      return {
-        id: data.id,
-        email: data.email || '',
-        firstName: data.first_name || '',
-        lastName: data.last_name || '',
-        phone: data.phone,
-        phoneVerified: data.phone_verified || false,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      };
+      return transformUser(data);
     } catch (error) {
       console.error('Profile load error:', error);
       return null;

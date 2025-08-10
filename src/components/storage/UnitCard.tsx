@@ -1,7 +1,7 @@
 import React from 'react';
 import { StorageUnit } from '../../types';
 import { formatPrice } from '../../utils/stripe';
-import { MONTHLY_PRICE } from '../../utils/constants';
+import { UNIT_PRICE } from '../../utils/constants';
 
 interface UnitCardProps {
   unit: StorageUnit;
@@ -50,9 +50,9 @@ export const UnitCard: React.FC<UnitCardProps> = ({ unit, onReserve }) => {
           </h3>
           <div className="text-right">
             <div className="text-2xl font-bold text-primary-600">
-              {formatPrice(MONTHLY_PRICE)}
+              {formatPrice(UNIT_PRICE)}
             </div>
-            <div className="text-sm text-gray-500">por mes</div>
+            <div className="text-sm text-gray-500">pago único</div>
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 -- Seed data for Trasteros storage rental app
 
 -- Insert sample storage units
-INSERT INTO storage_units (unit_number, size_m2, monthly_price) VALUES
+INSERT INTO storage_units (unit_number, size_m2, price) VALUES
     ('A001', 2, 45.00),
     ('A002', 2, 45.00),
     ('A003', 2, 45.00),

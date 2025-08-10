@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatPrice } from '../../utils/stripe';
-import { MONTHLY_PRICE, INSURANCE_PRICE, INSURANCE_COVERAGE } from '../../utils/constants';
+import { UNIT_PRICE, INSURANCE_PRICE, INSURANCE_COVERAGE } from '../../utils/constants';
 
 interface PricingSummaryProps {
   unitSize: number;
@@ -13,9 +13,9 @@ export const PricingSummary: React.FC<PricingSummaryProps> = ({
   includeInsurance,
   className = '',
 }) => {
-  const monthlyPrice = MONTHLY_PRICE;
+  const unitPrice = UNIT_PRICE;
   const insurancePrice = includeInsurance ? INSURANCE_PRICE : 0;
-  const totalPrice = monthlyPrice + insurancePrice;
+  const totalPrice = unitPrice + insurancePrice;
 
   return (
     <div className={`bg-gray-50 rounded-lg p-6 ${className}`}>
@@ -30,11 +30,11 @@ export const PricingSummary: React.FC<PricingSummaryProps> = ({
               Trastero {unitSize}m²
             </div>
             <div className="text-sm text-gray-500">
-              Alquiler mensual
+              Pago único
             </div>
           </div>
           <div className="text-sm font-medium text-gray-900">
-            {formatPrice(monthlyPrice)}
+            {formatPrice(unitPrice)}
           </div>
         </div>
 
@@ -57,7 +57,7 @@ export const PricingSummary: React.FC<PricingSummaryProps> = ({
         <div className="border-t border-gray-200 pt-3">
           <div className="flex items-center justify-between">
             <div className="text-base font-medium text-gray-900">
-              Total mensual
+              Total
             </div>
             <div className="text-lg font-bold text-primary-600">
               {formatPrice(totalPrice)}
@@ -100,7 +100,7 @@ export const PricingSummary: React.FC<PricingSummaryProps> = ({
 
       <div className="mt-4 text-xs text-gray-500">
         <p>
-          * El precio se cargará mensualmente. Puedes cancelar en cualquier momento.
+          * Pago único al contratar. Sin compromisos de permanencia.
         </p>
         {includeInsurance && (
           <p className="mt-1">

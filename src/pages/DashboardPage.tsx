@@ -2,34 +2,29 @@ import React, { useState } from 'react';
 import { ResponsiveLayout } from '../components/layout/ResponsiveLayout';
 import { ActiveUnitsTable } from '../components/dashboard/ActiveUnitsTable';
 import { PaymentHistory } from '../components/dashboard/PaymentHistory';
-import { QRCodeGenerator } from '../components/dashboard/QRCodeGenerator';
 import { ContractRenewal } from '../components/dashboard/ContractRenewal';
 import { UnitDetailsPanel } from '../components/storage/UnitDetailsPanel';
+import { ReservationWizard } from '../components/storage/ReservationWizard';
 import { Rental } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
 
 export const DashboardPage: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
-  const [showQRModal, setShowQRModal] = useState(false);
   const [showRenewalModal, setShowRenewalModal] = useState(false);
   const [showDetailsPanel, setShowDetailsPanel] = useState(false);
+  const [showReservationWizard, setShowReservationWizard] = useState(false);
     
   const handleViewDetails = (rental: Rental) => {
     setSelectedRental(rental);
     setShowDetailsPanel(true);
   };
 
-  const handleGenerateQR = (rental: Rental) => {
+  const handleViewAccess = (rental: Rental) => {
     setSelectedRental(rental);
-    setShowQRModal(true);
+    setShowDetailsPanel(true);
   };
 
-  const handleRenewContract = (rental: Rental) => {
-    setSelectedRental(rental);
-    setShowRenewalModal(true);
-  };
 
   const handleRenewalComplete = () => {
     // Refresh the units table - in a real app you might use a state management solution
@@ -37,7 +32,7 @@ export const DashboardPage: React.FC = () => {
   };
 
   return (
-    <ResponsiveLayout showSidebar title="Panel de Control">
+    <ResponsiveLayout title="Panel de Control">
       <div className="space-y-8">
         {/* Welcome Section */}
         <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg shadow-lg overflow-hidden">
@@ -63,13 +58,23 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Units Table */}
-        <ActiveUnitsTable
+        {!showReservationWizard && (
+          <ActiveUnitsTable
           onViewDetails={handleViewDetails}
-          onGenerateQR={handleGenerateQR}
-        />
+          onGenerateQR={handleViewAccess}
+          onReserveUnit={() => setShowReservationWizard(true)}
+          />
+        )}
 
         {/* Payment History */}
-        <PaymentHistory />
+        {!showReservationWizard && (
+          <PaymentHistory />
+        )}
+
+        {/* Reservation Wizard */}
+        {showReservationWizard && (
+          <ReservationWizard onClose={() => setShowReservationWizard(false)} />
+        )}
 
         {/* Quick Actions */}
         <div className="bg-white rounded-lg shadow-md p-6">
@@ -78,7 +83,7 @@ export const DashboardPage: React.FC = () => {
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <button
-              onClick={() => window.location.href = '/units'}
+              onClick={() => setShowReservationWizard(true)}
               className="flex items-center p-4 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
             >
               <svg className="w-6 h-6 text-primary-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,26 +156,15 @@ export const DashboardPage: React.FC = () => {
 
       {/* Modals */}
       {selectedRental && (
-        <>
-          <QRCodeGenerator
-            rental={selectedRental}
-            isOpen={showQRModal}
-            onClose={() => {
-              setShowQRModal(false);
-              setSelectedRental(null);
-            }}
-          />
-
-          <ContractRenewal
-            rental={selectedRental}
-            isOpen={showRenewalModal}
-            onClose={() => {
-              setShowRenewalModal(false);
-              setSelectedRental(null);
-            }}
-            onRenewalComplete={handleRenewalComplete}
-          />
-        </>
+        <ContractRenewal
+          rental={selectedRental}
+          isOpen={showRenewalModal}
+          onClose={() => {
+            setShowRenewalModal(false);
+            setSelectedRental(null);
+          }}
+          onRenewalComplete={handleRenewalComplete}
+        />
       )}
 
       {/* Details Panel - This could also be a modal */}
@@ -198,7 +192,6 @@ export const DashboardPage: React.FC = () => {
                 
                 <UnitDetailsPanel
                   rental={selectedRental}
-                  onGenerateQR={() => setShowQRModal(true)}
                   onRenew={() => setShowRenewalModal(true)}
                 />
               </div>
@@ -206,6 +199,7 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
       )}
+
     </ResponsiveLayout>
   );
 };
