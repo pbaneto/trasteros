@@ -4,8 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
-import { Link } from 'react-router-dom';
-import { ROUTES } from '../../utils/constants';
 
 const resetSchema = z.object({
   email: z.string().email('Introduce un email válido'),
@@ -13,7 +11,13 @@ const resetSchema = z.object({
 
 type ResetFormData = z.infer<typeof resetSchema>;
 
-export const PasswordReset: React.FC = () => {
+interface PasswordResetProps {
+  onSwitchToLogin?: () => void;
+}
+
+export const PasswordReset: React.FC<PasswordResetProps> = ({
+  onSwitchToLogin,
+}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const { resetPassword } = useAuth();
@@ -39,10 +43,16 @@ export const PasswordReset: React.FC = () => {
     }
   };
 
+  const handleSwitchToLogin = () => {
+    if (onSwitchToLogin) {
+      onSwitchToLogin();
+    }
+  };
+
   if (emailSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
+      <div className="p-6">
+        <div className="w-full space-y-6">
           <div className="text-center">
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
               <svg
@@ -59,7 +69,7 @@ export const PasswordReset: React.FC = () => {
                 />
               </svg>
             </div>
-            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+            <h2 className="mt-4 text-3xl font-extrabold text-gray-900">
               Email Enviado
             </h2>
             <p className="mt-2 text-sm text-gray-600">
@@ -67,12 +77,13 @@ export const PasswordReset: React.FC = () => {
               Revisa tu bandeja de entrada y sigue las instrucciones.
             </p>
             <div className="mt-6">
-              <Link
-                to={ROUTES.LOGIN}
+              <button
+                type="button"
+                onClick={handleSwitchToLogin}
                 className="font-medium text-primary-600 hover:text-primary-500"
               >
                 Volver al inicio de sesión
-              </Link>
+              </button>
             </div>
           </div>
         </div>
@@ -81,10 +92,10 @@ export const PasswordReset: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="p-6">
+      <div className="w-full space-y-6">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="text-center text-3xl font-extrabold text-gray-900">
             Recuperar Contraseña
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
@@ -117,12 +128,13 @@ export const PasswordReset: React.FC = () => {
           </button>
 
           <div className="text-center">
-            <Link
-              to={ROUTES.LOGIN}
+            <button
+              type="button"
+              onClick={handleSwitchToLogin}
               className="font-medium text-primary-600 hover:text-primary-500"
             >
               Volver al inicio de sesión
-            </Link>
+            </button>
           </div>
         </form>
       </div>

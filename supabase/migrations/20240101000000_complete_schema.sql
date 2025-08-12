@@ -1,5 +1,5 @@
--- Initial schema for Trasteros storage rental app
--- Combined migration with one-time pricing and no QR codes
+-- Complete Trasteros storage rental app schema
+-- Includes subscription support, rental metadata, and pending status
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS storage_units (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Create rentals table
+-- Create rentals table with payment type support and pending status
 CREATE TABLE IF NOT EXISTS rentals (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -35,23 +35,40 @@ CREATE TABLE IF NOT EXISTS rentals (
     end_date DATE NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     insurance_amount DECIMAL(10,2) DEFAULT 0.00,
-    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'expired', 'cancelled')),
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'expired', 'cancelled', 'pending')),
     stripe_payment_intent_id VARCHAR(255),
     ttlock_code VARCHAR(20),
+    -- Payment type support columns
+    months_paid INTEGER DEFAULT 1 CHECK (months_paid >= 0),
+    payment_type VARCHAR(20) DEFAULT 'single' CHECK (payment_type IN ('single', 'subscription')),
+    subscription_status VARCHAR(20) DEFAULT NULL CHECK (subscription_status IN ('active', 'cancelled', 'past_due', 'unpaid', 'pending')),
+    next_payment_date DATE,
+    -- Subscription metadata (replaces rental_metadata table)
+    stripe_subscription_id VARCHAR(255),
+    checkout_session_id VARCHAR(255),
+    subscription_metadata JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Create payments table
+-- Create payments table with subscription support
 CREATE TABLE IF NOT EXISTS payments (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     rental_id UUID REFERENCES rentals(id) ON DELETE CASCADE,
-    stripe_payment_intent_id VARCHAR(255) NOT NULL,
+    stripe_payment_intent_id VARCHAR(255),
     amount DECIMAL(10,2) NOT NULL,
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'succeeded', 'failed')),
     payment_date TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
-    payment_method VARCHAR(50) NOT NULL
+    payment_method VARCHAR(50) NOT NULL,
+    -- Payment type support columns
+    payment_type VARCHAR(20) DEFAULT 'single' CHECK (payment_type IN ('single', 'subscription')),
+    subscription_id VARCHAR(255),
+    billing_cycle_start DATE,
+    billing_cycle_end DATE,
+    is_subscription_active BOOLEAN DEFAULT FALSE,
+    next_billing_date DATE
 );
+
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_users_profile_email ON users_profile(email);
@@ -60,8 +77,16 @@ CREATE INDEX IF NOT EXISTS idx_storage_units_size ON storage_units(size_m2);
 CREATE INDEX IF NOT EXISTS idx_rentals_user_id ON rentals(user_id);
 CREATE INDEX IF NOT EXISTS idx_rentals_unit_id ON rentals(unit_id);
 CREATE INDEX IF NOT EXISTS idx_rentals_status ON rentals(status);
+CREATE INDEX IF NOT EXISTS idx_rentals_payment_type ON rentals(payment_type);
+CREATE INDEX IF NOT EXISTS idx_rentals_subscription_status ON rentals(subscription_status);
+CREATE INDEX IF NOT EXISTS idx_rentals_next_payment_date ON rentals(next_payment_date);
+CREATE INDEX IF NOT EXISTS idx_rentals_stripe_subscription_id ON rentals(stripe_subscription_id);
+CREATE INDEX IF NOT EXISTS idx_rentals_checkout_session_id ON rentals(checkout_session_id);
 CREATE INDEX IF NOT EXISTS idx_payments_rental_id ON payments(rental_id);
 CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+CREATE INDEX IF NOT EXISTS idx_payments_payment_type ON payments(payment_type);
+CREATE INDEX IF NOT EXISTS idx_payments_subscription_id ON payments(subscription_id);
+CREATE INDEX IF NOT EXISTS idx_payments_next_billing_date ON payments(next_billing_date);
 
 -- Set up Row Level Security (RLS)
 ALTER TABLE users_profile ENABLE ROW LEVEL SECURITY;
@@ -131,6 +156,7 @@ CREATE POLICY "System and service role can insert payments" ON payments
             AND rentals.user_id = auth.uid()
         )
     );
+
 
 -- Create a comprehensive function to handle user profile creation with OAuth support
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -241,6 +267,65 @@ CREATE TRIGGER update_rentals_updated_at
     BEFORE UPDATE ON rentals
     FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 
--- Add comments to clarify pricing model
-COMMENT ON COLUMN storage_units.price IS 'One-time rental price in euros';
-COMMENT ON COLUMN rentals.price IS 'One-time rental price paid for this rental in euros';
+
+-- Create a function to calculate rental end date based on payment type and months paid
+CREATE OR REPLACE FUNCTION calculate_rental_end_date(
+    start_date DATE,
+    months_paid INTEGER,
+    payment_type VARCHAR(20)
+) RETURNS DATE AS $$
+BEGIN
+    -- For single payments, add the number of months paid
+    IF payment_type = 'single' THEN
+        RETURN start_date + INTERVAL '1 month' * months_paid;
+    -- For subscriptions, initially set to one month (will be extended with each payment)
+    ELSE
+        RETURN start_date + INTERVAL '1 month';
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create a trigger function to automatically set end_date when rental is created/updated
+CREATE OR REPLACE FUNCTION update_rental_end_date()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Only update end_date if start_date, months_paid, or payment_type changed
+    IF TG_OP = 'INSERT' OR 
+       OLD.start_date != NEW.start_date OR 
+       OLD.months_paid != NEW.months_paid OR 
+       OLD.payment_type != NEW.payment_type THEN
+        
+        NEW.end_date := calculate_rental_end_date(
+            NEW.start_date, 
+            NEW.months_paid, 
+            NEW.payment_type
+        );
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger to automatically update end_date
+DROP TRIGGER IF EXISTS trigger_update_rental_end_date ON rentals;
+CREATE TRIGGER trigger_update_rental_end_date
+    BEFORE INSERT OR UPDATE ON rentals
+    FOR EACH ROW EXECUTE FUNCTION update_rental_end_date();
+
+-- Add comments to clarify the schema
+COMMENT ON COLUMN storage_units.price IS 'Monthly rental price in euros';
+COMMENT ON COLUMN rentals.price IS 'Monthly rental price for this rental in euros';
+COMMENT ON COLUMN rentals.status IS 'Current status of the rental: active, expired, cancelled, or pending';
+COMMENT ON COLUMN rentals.months_paid IS 'Number of months paid upfront for single payments';
+COMMENT ON COLUMN rentals.payment_type IS 'Payment model used for this rental';
+COMMENT ON COLUMN rentals.subscription_status IS 'Current status of subscription (only for subscription rentals)';
+COMMENT ON COLUMN rentals.next_payment_date IS 'Next expected payment date for subscription rentals';
+COMMENT ON COLUMN payments.payment_type IS 'Type of payment: single (one-time for multiple months) or subscription (recurring monthly)';
+COMMENT ON COLUMN payments.subscription_id IS 'Stripe subscription ID for subscription payments';
+COMMENT ON COLUMN payments.billing_cycle_start IS 'Start date of current billing cycle for subscriptions';
+COMMENT ON COLUMN payments.billing_cycle_end IS 'End date of current billing cycle for subscriptions';
+COMMENT ON COLUMN payments.is_subscription_active IS 'Whether the subscription is currently active';
+COMMENT ON COLUMN payments.next_billing_date IS 'Next scheduled billing date for subscriptions';
+COMMENT ON COLUMN rentals.stripe_subscription_id IS 'Stripe subscription ID for subscription-based rentals';
+COMMENT ON COLUMN rentals.checkout_session_id IS 'Stripe checkout session ID for this rental';
+COMMENT ON COLUMN rentals.subscription_metadata IS 'Additional subscription metadata from Stripe checkout session';

@@ -1,15 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ResponsiveLayout } from '../components/layout/ResponsiveLayout';
 import { ROUTES, UNIT_PRICE, STORAGE_UNIT_SIZES } from '../utils/constants';
 import { formatPrice } from '../utils/stripe';
 import { useAuth } from '../contexts/AuthContext';
 import { useStorageUnits } from '../hooks/useStorageUnits';
+import { AuthModal, AuthMode } from '../components/auth/AuthModal';
 
 export const HomePage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { availability, loading: unitsLoading, error: unitsError } = useStorageUnits();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
+
+  const openAuthModal = (mode: AuthMode) => {
+    setAuthMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
+  };
+
   const features = [
     {
       name: 'Acceso 24/7',
@@ -68,7 +81,7 @@ export const HomePage: React.FC = () => {
   ];
 
   return (
-    <ResponsiveLayout>
+    <ResponsiveLayout onOpenAuth={openAuthModal}>
       {/* Hero Section */}
       <div className="relative bg-gradient-to-br from-primary-500 to-primary-700 overflow-hidden">
         <div className="max-w-7xl mx-auto">
@@ -93,7 +106,7 @@ export const HomePage: React.FC = () => {
                 </div>
                 <div className="mt-3 sm:mt-0 sm:ml-3">
                   <button
-                    onClick={() => user ? navigate(ROUTES.DASHBOARD) : navigate(ROUTES.LOGIN)}
+                    onClick={() => user ? navigate(ROUTES.DASHBOARD) : openAuthModal('login')}
                     className="w-full flex items-center justify-center px-8 py-3 border-2 border-white text-base font-medium rounded-md text-white bg-transparent hover:bg-white hover:text-primary-600 md:py-4 md:text-lg md:px-10"
                   >
                     Mis trasteros
@@ -208,7 +221,7 @@ export const HomePage: React.FC = () => {
                       if (user) {
                         navigate(`${ROUTES.CHECKOUT}?size=${size.size}`);
                       } else {
-                        navigate(ROUTES.LOGIN);
+                        openAuthModal('login');
                       }
                     }}
                     disabled={unitsLoading || (size.availability && size.availability.availableCount === 0)}
@@ -232,6 +245,12 @@ export const HomePage: React.FC = () => {
         </div>
       </div>
 
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={closeAuthModal} 
+        initialMode={authMode}
+      />
     </ResponsiveLayout>
   );
 };

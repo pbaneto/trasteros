@@ -249,3 +249,9 @@ The application will be available at `http://localhost:3000`
 
 
 Built with ❤️ using React, TypeScript, Supabase, and Stripe.
+
+
+
+to test stripe locally
+`stripe listen --forward-to http://127.0.0.1:54321/functions/v1/stripe-webhook --events checkout.session.completed,checkout.session.expire`
+`npx supabase functions serve --no-verify-jwt stripe-webhook`

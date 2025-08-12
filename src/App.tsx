@@ -14,8 +14,6 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 
 // Auth Components
-import { LoginForm } from './components/auth/LoginForm';
-import { RegisterForm } from './components/auth/RegisterForm';
 import { PasswordReset } from './components/auth/PasswordReset';
 import { EmailConfirmationPendingPage } from './pages/EmailConfirmationPendingPage';
 
@@ -88,19 +86,11 @@ function App() {
               {/* Auth Routes - redirect to dashboard if already logged in */}
               <Route 
                 path={ROUTES.LOGIN} 
-                element={
-                  <PublicRoute>
-                    <LoginForm />
-                  </PublicRoute>
-                } 
+                element={<Navigate to={ROUTES.HOME} />}
               />
               <Route 
                 path={ROUTES.REGISTER} 
-                element={
-                  <PublicRoute>
-                    <RegisterForm />
-                  </PublicRoute>
-                } 
+                element={<Navigate to={ROUTES.HOME} />}
               />
               <Route 
                 path={ROUTES.RESET_PASSWORD} 

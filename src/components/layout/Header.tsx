@@ -3,8 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ROUTES } from '../../utils/constants';
 import { toast } from 'react-toastify';
+import { AuthMode } from '../auth/AuthModal';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onOpenAuth?: (mode: AuthMode) => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onOpenAuth }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
@@ -97,18 +102,37 @@ export const Header: React.FC = () => {
               </div>
             ) : (
               <div className="flex items-center space-x-4">
-                <Link
-                  to={ROUTES.LOGIN}
-                  className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium"
-                >
-                  Iniciar Sesión
-                </Link>
-                <Link
-                  to={ROUTES.REGISTER}
-                  className="btn-primary"
-                >
-                  Registrarse
-                </Link>
+                {onOpenAuth ? (
+                  <>
+                    <button
+                      onClick={() => onOpenAuth('login')}
+                      className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium"
+                    >
+                      Iniciar Sesión
+                    </button>
+                    <button
+                      onClick={() => onOpenAuth('register')}
+                      className="btn-primary"
+                    >
+                      Registrarse
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to={ROUTES.LOGIN}
+                      className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium"
+                    >
+                      Iniciar Sesión
+                    </Link>
+                    <Link
+                      to={ROUTES.REGISTER}
+                      className="btn-primary"
+                    >
+                      Registrarse
+                    </Link>
+                  </>
+                )}
               </div>
             )}
           </div>

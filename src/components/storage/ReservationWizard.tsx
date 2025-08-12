@@ -10,13 +10,15 @@ interface ReservationWizardProps {
   onClose: () => void;
 }
 
-type Step = 'size' | 'insurance' | 'summary';
+type Step = 'size' | 'payment' | 'insurance' | 'summary';
 
 export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose }) => {
   const { user } = useAuth();
   const { availability } = useStorageUnits();
   const [currentStep, setCurrentStep] = useState<Step>('size');
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
+  const [paymentType, setPaymentType] = useState<'single' | 'subscription'>('single');
+  const [selectedMonths, setSelectedMonths] = useState<number>(1);
   const [selectedInsurance, setSelectedInsurance] = useState<string>('none');
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -39,16 +41,44 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose })
   ];
 
   const selectedInsuranceOption = INSURANCE_OPTIONS.find(option => option.id === selectedInsurance);
-  const totalPrice = UNIT_PRICE + (selectedInsuranceOption?.price || 0);
+  const basePrice = paymentType === 'single' ? UNIT_PRICE * selectedMonths : UNIT_PRICE;
+  const totalPrice = basePrice + (selectedInsuranceOption?.price || 0);
 
   const handleSizeSelect = (size: number) => {
     setSelectedSize(size);
+    setCurrentStep('payment');
+  };
+
+  const handlePaymentTypeSelect = () => {
     setCurrentStep('insurance');
   };
 
   const handleInsuranceSelect = (insurance: string) => {
     setSelectedInsurance(insurance);
     setCurrentStep('summary');
+  };
+
+  const steps: Step[] = ['size', 'payment', 'insurance', 'summary'];
+  const currentStepIndex = steps.indexOf(currentStep);
+
+  const goToNextStep = () => {
+    if (currentStepIndex < steps.length - 1) {
+      setCurrentStep(steps[currentStepIndex + 1]);
+    }
+  };
+
+  const goToPreviousStep = () => {
+    if (currentStepIndex > 0) {
+      setCurrentStep(steps[currentStepIndex - 1]);
+    }
+  };
+
+  const goToStep = (step: Step) => {
+    // Only allow going to previous steps or the next immediate step
+    const targetIndex = steps.indexOf(step);
+    if (targetIndex <= currentStepIndex || targetIndex === currentStepIndex + 1) {
+      setCurrentStep(step);
+    }
   };
 
   const handleCheckout = async () => {
@@ -84,7 +114,8 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose })
       const response = await supabase.functions.invoke('create-checkout-session', {
         body: {
           unitId: selectedUnit.id,
-          months: 1,
+          months: paymentType === 'single' ? selectedMonths : 1,
+          paymentType,
           insurance: selectedInsurance !== 'none',
           insurancePrice: selectedInsuranceOption?.price || 0,
           insuranceCoverage: selectedInsuranceOption?.coverage || 0,
@@ -162,6 +193,90 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose })
     </div>
   );
 
+  const renderPaymentStep = () => (
+    <div className="space-y-4">
+      <div className="text-center mb-6">
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+          Tipo de pago
+        </h3>
+        <p className="text-gray-600">Elige cómo prefieres pagar tu trastero</p>
+      </div>
+
+      <div className="space-y-4">
+        <div 
+          onClick={() => setPaymentType('single')}
+          className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+            paymentType === 'single' 
+              ? 'border-primary-500 bg-primary-50' 
+              : 'border-gray-200 hover:border-primary-300 bg-white'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <div className={`w-4 h-4 rounded-full border-2 ${
+                paymentType === 'single' ? 'bg-primary-500 border-primary-500' : 'border-gray-300'
+              }`}>
+                {paymentType === 'single' && <div className="w-2 h-2 bg-white rounded-full m-0.5" />}
+              </div>
+              <span className="text-lg font-medium text-gray-900">Pago único</span>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mb-3">Paga por adelantado varios meses y ahorra</p>
+          
+          {paymentType === 'single' && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                ¿Cuántos meses?
+              </label>
+              <select
+                value={selectedMonths}
+                onChange={(e) => setSelectedMonths(Number(e.target.value))}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+              >
+                {[1, 2, 3, 4, 5, 6, 12].map(months => (
+                  <option key={months} value={months}>
+                    {months} {months === 1 ? 'mes' : 'meses'} - {formatPrice(UNIT_PRICE * months)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        <div 
+          onClick={() => setPaymentType('subscription')}
+          className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+            paymentType === 'subscription' 
+              ? 'border-primary-500 bg-primary-50' 
+              : 'border-gray-200 hover:border-primary-300 bg-white'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <div className={`w-4 h-4 rounded-full border-2 ${
+                paymentType === 'subscription' ? 'bg-primary-500 border-primary-500' : 'border-gray-300'
+              }`}>
+                {paymentType === 'subscription' && <div className="w-2 h-2 bg-white rounded-full m-0.5" />}
+              </div>
+              <span className="text-lg font-medium text-gray-900">Suscripción mensual</span>
+            </div>
+            <span className="text-lg font-bold text-primary-600">{formatPrice(UNIT_PRICE)}/mes</span>
+          </div>
+          <p className="text-sm text-gray-600">Pago automático cada mes, cancela cuando quieras</p>
+        </div>
+      </div>
+
+      <div className="flex justify-center pt-6">
+        <button
+          onClick={handlePaymentTypeSelect}
+          className="btn-primary px-8 py-2"
+        >
+          Continuar
+        </button>
+      </div>
+    </div>
+  );
+
   const renderInsuranceStep = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
@@ -192,15 +307,6 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose })
           </button>
         ))}
       </div>
-
-      <div className="flex justify-center pt-4">
-        <button
-          onClick={() => setCurrentStep('size')}
-          className="text-gray-500 hover:text-gray-700 text-sm"
-        >
-          ← Volver a selección de tamaño
-        </button>
-      </div>
     </div>
   );
 
@@ -222,7 +328,25 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose })
               <span className="font-medium text-gray-900">Trastero {selectedSizeInfo?.label}</span>
               <p className="text-sm text-gray-500">{selectedSizeInfo?.description}</p>
             </div>
-            <span className="font-bold text-gray-900">{formatPrice(UNIT_PRICE)}</span>
+            <span className="font-bold text-gray-900">{formatPrice(basePrice)}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <div>
+              <span className="font-medium text-gray-900">Tipo de pago</span>
+              <p className="text-sm text-gray-500">
+                {paymentType === 'single' 
+                  ? `Pago único - ${selectedMonths} ${selectedMonths === 1 ? 'mes' : 'meses'}` 
+                  : 'Suscripción mensual'
+                }
+              </p>
+            </div>
+            <span className="font-bold text-gray-900">
+              {paymentType === 'single' 
+                ? formatPrice(UNIT_PRICE * selectedMonths)
+                : `${formatPrice(UNIT_PRICE)}/mes`
+              }
+            </span>
           </div>
           
           {selectedInsuranceOption && selectedInsuranceOption.price > 0 && (
@@ -258,13 +382,6 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose })
               `Proceder al pago - ${formatPrice(totalPrice)}`
             )}
           </button>
-
-          <button
-            onClick={() => setCurrentStep('insurance')}
-            className="w-full text-gray-500 hover:text-gray-700 text-sm py-2"
-          >
-            ← Modificar seguro
-          </button>
         </div>
       </div>
     );
@@ -273,21 +390,88 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose })
   return (
     <div className="bg-white rounded-lg shadow-lg border border-gray-200">
       <div className="flex items-center justify-between p-6 border-b border-gray-200">
-        <div className="flex items-center space-x-4">
-          
-          {/* Progress indicator */}
-          <div className="flex items-center space-x-2 ml-6">
-            <div className={`w-3 h-3 rounded-full ${currentStep === 'size' ? 'bg-primary-600' : 'bg-gray-300'}`} />
-            <div className="w-6 h-px bg-gray-300" />
-            <div className={`w-3 h-3 rounded-full ${currentStep === 'insurance' ? 'bg-primary-600' : currentStep === 'summary' ? 'bg-primary-600' : 'bg-gray-300'}`} />
-            <div className="w-6 h-px bg-gray-300" />
-            <div className={`w-3 h-3 rounded-full ${currentStep === 'summary' ? 'bg-primary-600' : 'bg-gray-300'}`} />
+        <div className="flex items-center space-x-4 flex-1">
+          {/* Navigation arrows */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={goToPreviousStep}
+              disabled={currentStepIndex === 0}
+              className={`p-2 rounded-full ${
+                currentStepIndex === 0 
+                  ? 'text-gray-300 cursor-not-allowed' 
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            
+            <button
+              onClick={goToNextStep}
+              disabled={currentStepIndex === steps.length - 1}
+              className={`p-2 rounded-full ${
+                currentStepIndex === steps.length - 1
+                  ? 'text-gray-300 cursor-not-allowed' 
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Progress indicator with step names */}
+          <div className="flex items-center justify-center space-x-4 flex-1">
+            {steps.map((step, index) => {
+              const stepNames = {
+                size: 'Tamaño',
+                payment: 'Pago',
+                insurance: 'Seguro',
+                summary: 'Resumen'
+              };
+              
+              const isActive = step === currentStep;
+              const isCompleted = index < currentStepIndex;
+              const isClickable = index <= currentStepIndex;
+              
+              return (
+                <div key={step} className="flex items-center">
+                  <button
+                    onClick={() => isClickable && goToStep(step)}
+                    disabled={!isClickable}
+                    className={`flex flex-col items-center space-y-1 ${
+                      isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                      isActive 
+                        ? 'bg-primary-600 text-white' 
+                        : isCompleted 
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-300 text-gray-600'
+                    }`}>
+                      {isCompleted ? '✓' : index + 1}
+                    </div>
+                    <span className={`text-xs ${
+                      isActive ? 'text-primary-600 font-medium' : 'text-gray-500'
+                    }`}>
+                      {stepNames[step]}
+                    </span>
+                  </button>
+                  {index < steps.length - 1 && (
+                    <div className="w-8 h-px bg-gray-300 mx-2" />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
         
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-gray-500"
+          className="text-gray-400 hover:text-gray-500 ml-4"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -297,6 +481,7 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose })
 
       <div className="p-6">
         {currentStep === 'size' && renderSizeStep()}
+        {currentStep === 'payment' && renderPaymentStep()}
         {currentStep === 'insurance' && renderInsuranceStep()}
         {currentStep === 'summary' && renderSummaryStep()}
       </div>

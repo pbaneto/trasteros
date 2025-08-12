@@ -4,8 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
-import { Link, useNavigate } from 'react-router-dom';
-import { ROUTES } from '../../utils/constants';
 import { GoogleButton } from './GoogleButton';
 import { PasswordInput } from '../layout/PasswordInput';
 
@@ -37,10 +35,17 @@ const registerSchema = z.object({
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
-export const RegisterForm: React.FC = () => {
+interface RegisterFormProps {
+  onSwitchToLogin?: () => void;
+  onSuccess?: () => void;
+}
+
+export const RegisterForm: React.FC<RegisterFormProps> = ({
+  onSwitchToLogin,
+  onSuccess,
+}) => {
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
-  const navigate = useNavigate();
   
   const {
     register,
@@ -54,9 +59,9 @@ export const RegisterForm: React.FC = () => {
     setIsLoading(true);
     try {
       await signUp(data.email, data.password, data.firstName, data.lastName, data.phone);
-      navigate(ROUTES.EMAIL_CONFIRMATION_PENDING, { 
-        state: { email: data.email } 
-      });
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error: any) {
       toast.error(error.message || 'Error al crear la cuenta');
     } finally {
@@ -65,21 +70,28 @@ export const RegisterForm: React.FC = () => {
   };
 
 
+  const handleSwitchToLogin = () => {
+    if (onSwitchToLogin) {
+      onSwitchToLogin();
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="p-6">
+      <div className="w-full space-y-6">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="text-center text-3xl font-extrabold text-gray-900">
             Crear Cuenta
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             O{' '}
-            <Link
-              to={ROUTES.LOGIN}
+            <button
+              type="button"
+              onClick={handleSwitchToLogin}
               className="font-medium text-primary-600 hover:text-primary-500"
             >
               inicia sesión en tu cuenta existente
-            </Link>
+            </button>
           </p>
         </div>
 

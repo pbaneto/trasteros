@@ -4,8 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
-import { Link, useNavigate } from 'react-router-dom';
-import { ROUTES } from '../../utils/constants';
 import { GoogleButton } from './GoogleButton';
 import { PasswordInput } from '../layout/PasswordInput';
 
@@ -20,10 +18,19 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-export const LoginForm: React.FC = () => {
+interface LoginFormProps {
+  onSwitchToRegister?: () => void;
+  onSwitchToReset?: () => void;
+  onSuccess?: () => void;
+}
+
+export const LoginForm: React.FC<LoginFormProps> = ({
+  onSwitchToRegister,
+  onSwitchToReset,
+  onSuccess,
+}) => {
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
-  const navigate = useNavigate();
 
   const {
     register,
@@ -37,7 +44,9 @@ export const LoginForm: React.FC = () => {
     setIsLoading(true);
     try {
       await signIn(data.email, data.password); 
-      navigate(ROUTES.DASHBOARD);
+      if (onSuccess) {
+        onSuccess();
+      }
       toast.success('¡Bienvenido de vuelta!');
     } catch (error: any) {
       toast.error(error.message || 'Error al iniciar sesión');
@@ -47,21 +56,34 @@ export const LoginForm: React.FC = () => {
   };
 
 
+  const handleSwitchToRegister = () => {
+    if (onSwitchToRegister) {
+      onSwitchToRegister();
+    }
+  };
+
+  const handleSwitchToReset = () => {
+    if (onSwitchToReset) {
+      onSwitchToReset();
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="p-6">
+      <div className="w-full space-y-6">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="text-center text-3xl font-extrabold text-gray-900">
             Iniciar Sesión
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             O{' '}
-            <Link
-              to={ROUTES.REGISTER}
+            <button
+              type="button"
+              onClick={handleSwitchToRegister}
               className="font-medium text-primary-600 hover:text-primary-500"
             >
               crea una cuenta nueva
-            </Link>
+            </button>
           </p>
         </div>
 
@@ -96,12 +118,13 @@ export const LoginForm: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between">
-            <Link
-              to={ROUTES.RESET_PASSWORD}
+            <button
+              type="button"
+              onClick={handleSwitchToReset}
               className="text-sm text-primary-600 hover:text-primary-500"
             >
               ¿Olvidaste tu contraseña?
-            </Link>
+            </button>
           </div>
 
           <button

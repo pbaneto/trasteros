@@ -44,6 +44,7 @@ serve(async (req) => {
     const { 
       unitId, 
       months, 
+      paymentType,
       insurance, 
       insurancePrice,
       insuranceCoverage,
@@ -64,55 +65,103 @@ serve(async (req) => {
       throw new Error('Unidad no disponible')
     }
 
-    // Crear los line items para Stripe
-    const lineItems = [
-      {
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: `Unidad de almacenamiento ${unitSize}m²`,
-            description: `Alquiler de trastero ${unitSize}m²`,
-          },
-          unit_amount: Math.round(unitPrice * 100), // Stripe usa centavos
-        },
-        quantity: 1,
-      },
-    ]
-
-    // Agregar seguro si se seleccionó
-    if (insurance && insurancePrice > 0) {
-      const formatPrice = (amount: number) => `€${amount.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-      
+    // Crear los line items para Stripe basados en el tipo de pago
+    const lineItems: any[] = []
+    
+    if (paymentType === 'subscription') {
+      // Para suscripciones, crear precios recurrentes
       lineItems.push({
         price_data: {
           currency: 'eur',
           product_data: {
-            name: 'Seguro de contenido',
-            description: `Cobertura hasta ${formatPrice(insuranceCoverage || 0)} contra daños, robos e incendios`,
+            name: `Unidad de almacenamiento ${unitSize}m²`,
+            description: `Alquiler mensual de trastero ${unitSize}m²`,
           },
-          unit_amount: Math.round(insurancePrice * 100), // Usar el precio real del seguro seleccionado
+          unit_amount: Math.round(unitPrice * 100), // Stripe usa centavos
+          recurring: {
+            interval: 'month',
+          },
         },
         quantity: 1,
       })
+
+      // Agregar seguro si se seleccionó (también recurrente)
+      if (insurance && insurancePrice > 0) {
+        const formatPrice = (amount: number) => `€${amount.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+        
+        lineItems.push({
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: 'Seguro de contenido',
+              description: `Cobertura hasta ${formatPrice(insuranceCoverage || 0)} contra daños, robos e incendios`,
+            },
+            unit_amount: Math.round(insurancePrice * 100),
+            recurring: {
+              interval: 'month',
+            },
+          },
+          quantity: 1,
+        })
+      }
+    } else {
+      // Para pagos únicos, calcular el precio total por los meses seleccionados
+      lineItems.push({
+        price_data: {
+          currency: 'eur',
+          product_data: {
+            name: `Unidad de almacenamiento ${unitSize}m²`,
+            description: `Alquiler de trastero ${unitSize}m² - ${months} ${months === 1 ? 'mes' : 'meses'}`,
+          },
+          unit_amount: Math.round(unitPrice * months * 100), // Precio por todos los meses
+        },
+        quantity: 1,
+      })
+
+      // Agregar seguro si se seleccionó (pago único)
+      if (insurance && insurancePrice > 0) {
+        const formatPrice = (amount: number) => `€${amount.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+        
+        lineItems.push({
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: 'Seguro de contenido',
+              description: `Cobertura hasta ${formatPrice(insuranceCoverage || 0)} contra daños, robos e incendios`,
+            },
+            unit_amount: Math.round(insurancePrice * 100),
+          },
+          quantity: 1,
+        })
+      }
     }
 
     // Crear sesión de checkout
-    const session = await stripe.checkout.sessions.create({
+    const sessionConfig: any = {
       customer_email: user.email,
       payment_method_types: ['card'],
       line_items: lineItems,
-      mode: 'payment',
+      mode: paymentType === 'subscription' ? 'subscription' : 'payment',
       success_url: `${req.headers.get('origin')}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/checkout?canceled=true`,
       metadata: {
         userId: user.id,
         unitId: unitId.toString(),
         months: months.toString(),
+        paymentType: paymentType,
         insurance: insurance.toString(),
         insurancePrice: (insurancePrice || 0).toString(),
         unitSize: unitSize.toString(),
       },
-    })
+    }
+
+    // For subscriptions, allow payment method collection for future payments
+    if (paymentType === 'subscription') {
+      sessionConfig.payment_method_collection = 'always'
+      // No trial period needed - Stripe will charge immediately by default for new subscriptions
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig)
 
     return new Response(
       JSON.stringify({ url: session.url }),
