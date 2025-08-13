@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ResponsiveLayout } from '../components/layout/ResponsiveLayout';
 import { ActiveUnitsTable } from '../components/dashboard/ActiveUnitsTable';
-import { PaymentHistory } from '../components/dashboard/PaymentHistory';
 import { ContractRenewal } from '../components/dashboard/ContractRenewal';
 import { UnitDetailsPanel } from '../components/storage/UnitDetailsPanel';
 import { ReservationWizard } from '../components/storage/ReservationWizard';
@@ -15,14 +14,20 @@ export const DashboardPage: React.FC = () => {
   const [showDetailsPanel, setShowDetailsPanel] = useState(false);
   const [showReservationWizard, setShowReservationWizard] = useState(false);
     
-  const handleViewDetails = (rental: Rental) => {
+  const handleViewAccess = (rental: Rental) => {
     setSelectedRental(rental);
     setShowDetailsPanel(true);
   };
 
-  const handleViewAccess = (rental: Rental) => {
+  const handleRenewRental = (rental: Rental) => {
     setSelectedRental(rental);
-    setShowDetailsPanel(true);
+    setShowRenewalModal(true);
+  };
+
+  const handleCancelSubscription = (rental: Rental) => {
+    // TODO: Implement subscription cancellation logic
+    console.log('Cancel subscription for rental:', rental.id);
+    // You can add a confirmation modal here
   };
 
 
@@ -37,10 +42,21 @@ export const DashboardPage: React.FC = () => {
         {/* Welcome Section */}
         <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg shadow-lg overflow-hidden">
           <div className="px-6 py-8 sm:px-8">
-            <div className="ml-4">
-              <h1 className="text-2xl font-bold text-white">
-                ¡Hola, {user?.firstName}!
-              </h1>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="ml-4 mb-4 sm:mb-0">
+                <h1 className="text-2xl font-bold text-white">
+                  ¡Hola, {user?.firstName}!
+                </h1>
+                <p className="text-white">Gestiona tus trasteros alquilados y su estado.</p>
+              </div>
+              <div className="ml-4 sm:mr-4">
+                <button
+                  onClick={() => setShowReservationWizard(true)}
+                  className="bg-white text-primary-600 hover:bg-gray-50 font-medium py-2 px-4 rounded-lg shadow transition-colors w-full sm:w-auto"
+                >
+                  Reservar trastero
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -48,16 +64,12 @@ export const DashboardPage: React.FC = () => {
         {/* Units Table */}
         {!showReservationWizard && (
           <ActiveUnitsTable
-          onViewDetails={handleViewDetails}
           onGenerateQR={handleViewAccess}
-          onReserveUnit={() => setShowReservationWizard(true)}
+          onRenewRental={handleRenewRental}
+          onCancelSubscription={handleCancelSubscription}
           />
         )}
 
-        {/* Payment History */}
-        {!showReservationWizard && (
-          <PaymentHistory />
-        )}
 
         {/* Reservation Wizard */}
         {showReservationWizard && (
@@ -70,22 +82,6 @@ export const DashboardPage: React.FC = () => {
             Acciones Rápidas
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button
-              onClick={() => setShowReservationWizard(true)}
-              className="flex items-center p-4 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
-            >
-              <svg className="w-6 h-6 text-primary-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              <div className="text-left">
-                <div className="text-sm font-medium text-gray-900">
-                  Nuevo Trastero
-                </div>
-                <div className="text-xs text-gray-500">
-                  Alquilar otro trastero
-                </div>
-              </div>
-            </button>
 
             <button
               onClick={() => window.location.href = '/profile'}

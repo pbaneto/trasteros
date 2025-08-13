@@ -43,6 +43,12 @@ export interface Payment {
   status: 'pending' | 'succeeded' | 'failed';
   paymentDate: string;
   paymentMethod: string;
+  paymentType: 'single' | 'subscription';
+  subscriptionId?: string;
+  billingCycleStart?: string;
+  billingCycleEnd?: string;
+  isSubscriptionActive?: boolean;
+  nextBillingDate?: string;
   rental?: {
     id: string;
     unit?: {

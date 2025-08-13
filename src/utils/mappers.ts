@@ -46,6 +46,12 @@ interface RawPayment {
   status: 'pending' | 'succeeded' | 'failed';
   payment_date: string;
   payment_method: string;
+  payment_type: 'single' | 'subscription';
+  subscription_id?: string;
+  billing_cycle_start?: string;
+  billing_cycle_end?: string;
+  is_subscription_active?: boolean;
+  next_billing_date?: string;
   rental?: {
     id: string;
     unit?: {
@@ -112,6 +118,12 @@ export const transformPayment = (rawPayment: RawPayment): Payment => ({
   status: rawPayment.status,
   paymentDate: rawPayment.payment_date,
   paymentMethod: rawPayment.payment_method,
+  paymentType: rawPayment.payment_type,
+  subscriptionId: rawPayment.subscription_id,
+  billingCycleStart: rawPayment.billing_cycle_start,
+  billingCycleEnd: rawPayment.billing_cycle_end,
+  isSubscriptionActive: rawPayment.is_subscription_active,
+  nextBillingDate: rawPayment.next_billing_date,
   rental: rawPayment.rental ? {
     id: rawPayment.rental.id,
     unit: rawPayment.rental.unit ? {
