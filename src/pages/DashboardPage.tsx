@@ -4,6 +4,7 @@ import { ActiveUnitsTable } from '../components/dashboard/ActiveUnitsTable';
 import { ContractRenewal } from '../components/dashboard/ContractRenewal';
 import { UnitDetailsPanel } from '../components/storage/UnitDetailsPanel';
 import { ReservationWizard } from '../components/storage/ReservationWizard';
+import { AuthModal, AuthMode } from '../components/auth/AuthModal';
 import { Rental } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,6 +14,8 @@ export const DashboardPage: React.FC = () => {
   const [showRenewalModal, setShowRenewalModal] = useState(false);
   const [showDetailsPanel, setShowDetailsPanel] = useState(false);
   const [showReservationWizard, setShowReservationWizard] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<AuthMode>('login');
     
   const handleViewAccess = (rental: Rental) => {
     setSelectedRental(rental);
@@ -36,8 +39,17 @@ export const DashboardPage: React.FC = () => {
     window.location.reload();
   };
 
+  const openAuthModal = (mode: AuthMode) => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
+  };
+
   return (
-    <ResponsiveLayout>
+    <ResponsiveLayout onOpenAuth={openAuthModal}>
       <div className="space-y-8">
         {/* Welcome Section */}
         <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg shadow-lg overflow-hidden">
@@ -183,6 +195,13 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={closeAuthModal} 
+        initialMode={authModalMode}
+      />
 
     </ResponsiveLayout>
   );

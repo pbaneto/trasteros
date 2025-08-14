@@ -7,9 +7,9 @@ export const EmailConfirmationPendingPage: React.FC = () => {
   const location = useLocation();
   const email = location.state?.email;
 
-  // If no email in state, redirect to register page
+  // If no email in state, redirect to home page
   if (!email) {
-    return <Navigate to={ROUTES.REGISTER} replace />;
+    return <Navigate to={ROUTES.HOME} replace />;
   }
 
   return <EmailConfirmationPending email={email} />;

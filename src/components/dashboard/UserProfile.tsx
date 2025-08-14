@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,7 +15,7 @@ const profileSchema = z.object({
 });
 
 const passwordSchema = z.object({
-  currentPassword: z.string().min(6, 'La contraseña actual es requerida'),
+  currentPassword: z.string().optional(),
   newPassword: z.string().min(6, 'La nueva contraseña debe tener al menos 6 caracteres'),
   confirmPassword: z.string(),
 }).refine((data) => data.newPassword === data.confirmPassword, {
@@ -26,11 +26,24 @@ const passwordSchema = z.object({
 type ProfileFormData = z.infer<typeof profileSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
-export const UserProfile: React.FC = () => {
+interface UserProfileProps {
+  initialTab?: 'profile' | 'password' | 'phone';
+}
+
+export const UserProfile: React.FC<UserProfileProps> = ({ 
+  initialTab = 'profile' 
+}) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'phone'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'phone'>(initialTab);
   const [isLoading, setIsLoading] = useState(false);
   const [showPhoneVerification, setShowPhoneVerification] = useState(false);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  // Check if user is coming from password recovery
+  const isPasswordRecovery = initialTab === 'password';
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -284,21 +297,42 @@ export const UserProfile: React.FC = () => {
               </div>
 
               <form onSubmit={passwordForm.handleSubmit(updatePassword)} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Contraseña Actual
-                  </label>
-                  <input
-                    {...passwordForm.register('currentPassword')}
-                    type="password"
-                    className="input-field mt-1"
-                  />
-                  {passwordForm.formState.errors.currentPassword && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {passwordForm.formState.errors.currentPassword.message}
-                    </p>
-                  )}
-                </div>
+                {!isPasswordRecovery && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Contraseña Actual
+                    </label>
+                    <input
+                      {...passwordForm.register('currentPassword')}
+                      type="password"
+                      className="input-field mt-1"
+                      required
+                    />
+                    {passwordForm.formState.errors.currentPassword && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {passwordForm.formState.errors.currentPassword.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {isPasswordRecovery && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <div className="flex">
+                      <svg className="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-blue-800">
+                          Restablecimiento de Contraseña
+                        </h3>
+                        <p className="mt-1 text-sm text-blue-700">
+                          Has accedido desde un enlace de recuperación. Establece tu nueva contraseña a continuación.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">

@@ -44,7 +44,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!user) {
-    return <Navigate to={ROUTES.LOGIN} />;
+    return <Navigate to={ROUTES.HOME} />;
   }
 
   return <>{children}</>;
@@ -85,14 +85,6 @@ function App() {
               
               {/* Auth Routes - redirect to dashboard if already logged in */}
               <Route 
-                path={ROUTES.LOGIN} 
-                element={<Navigate to={ROUTES.HOME} />}
-              />
-              <Route 
-                path={ROUTES.REGISTER} 
-                element={<Navigate to={ROUTES.HOME} />}
-              />
-              <Route 
                 path={ROUTES.RESET_PASSWORD} 
                 element={
                   <PublicRoute>
@@ -110,14 +102,6 @@ function App() {
               {/* Protected Routes */}
               <Route
                 path={ROUTES.DASHBOARD}
-                element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path={ROUTES.DASHBOARD_PAYMENTS}
                 element={
                   <ProtectedRoute>
                     <DashboardPage />

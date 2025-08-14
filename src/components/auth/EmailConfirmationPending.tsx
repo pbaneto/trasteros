@@ -23,7 +23,16 @@ export const EmailConfirmationPending: React.FC<EmailConfirmationPendingProps> =
       await resendConfirmation(email);
       toast.success('Email de confirmación reenviado. Revisa tu bandeja de entrada.');
     } catch (error: any) {
-      toast.error('Error al reenviar el email: ' + (error.message || 'Inténtalo más tarde'));
+      // Check for specific error types
+      if (error.message?.includes('rate limit')) {
+        toast.error('Demasiados intentos. Espera 10 segundos antes de intentar de nuevo.');
+      } else if (error.message?.includes('not found')) {
+        toast.error('Usuario no encontrado. Verifica que el email sea correcto.');
+      } else if (error.message?.includes('frequency')) {
+        toast.error('Espera 10 segundos antes de reenviar otro email.');
+      } else {
+        toast.error('Error al reenviar el email: ' + (error.message || 'Inténtalo más tarde'));
+      }
     } finally {
       setIsResending(false);
     }
@@ -39,7 +48,19 @@ export const EmailConfirmationPending: React.FC<EmailConfirmationPendingProps> =
       toast.success('¡Email confirmado! Bienvenido a Trasteros.');
       navigate(ROUTES.DASHBOARD);
     } catch (error: any) {
-      toast.error('Código incorrecto o expirado: ' + (error.message || 'Inténtalo de nuevo'));
+      // Clear the input for retry
+      setOtpCode('');
+      
+      // Provide specific error messages
+      if (error.message?.includes('expired')) {
+        toast.error('El código ha expirado (5 min). Solicita un nuevo código.');
+      } else if (error.message?.includes('invalid') || error.message?.includes('incorrect')) {
+        toast.error('Código incorrecto. Inténtalo de nuevo. El código expira en 5 minutos.');
+      } else if (error.message?.includes('rate limit')) {
+        toast.error('Demasiados intentos. Espera un momento antes de intentar de nuevo.');
+      } else {
+        toast.error('Error al verificar el código: ' + (error.message || 'Inténtalo de nuevo'));
+      }
     } finally {
       setIsVerifying(false);
     }
@@ -103,6 +124,9 @@ export const EmailConfirmationPending: React.FC<EmailConfirmationPendingProps> =
                 <label htmlFor="otpCode" className="block text-sm font-medium text-gray-700 mb-2">
                   Introduce el código de 6 dígitos del email:
                 </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  El código expira en 5 minutos. Puedes intentar varias veces.
+                </p>
                 <input
                   id="otpCode"
                   type="text"
@@ -145,23 +169,12 @@ export const EmailConfirmationPending: React.FC<EmailConfirmationPendingProps> =
 
           <div className="text-center">
             <Link
-              to={ROUTES.LOGIN}
+              to={ROUTES.HOME}
               className="text-sm text-primary-600 hover:text-primary-500"
             >
               Volver al inicio de sesión
             </Link>
           </div>
-        </div>
-
-        <div className="bg-gray-50 rounded-md p-4">
-          <h3 className="text-sm font-medium text-gray-900 mb-2">
-            ¿Problemas con el email?
-          </h3>
-          <ul className="text-sm text-gray-700 space-y-1">
-            <li>• Revisa tu carpeta de spam o correo no deseado</li>
-            <li>• Verifica que la dirección de email sea correcta</li>
-            <li>• El enlace expira en 1 hora</li>
-          </ul>
         </div>
       </div>
     </div>

@@ -38,10 +38,7 @@ export const UNIT_STATUS = {
 
 export const ROUTES = {
   HOME: '/',
-  LOGIN: '/login',
-  REGISTER: '/register',
   DASHBOARD: '/dashboard',
-  DASHBOARD_PAYMENTS: '/dashboard/payments',
   CHECKOUT: '/checkout',
   PROFILE: '/profile',
   RESET_PASSWORD: '/reset-password',

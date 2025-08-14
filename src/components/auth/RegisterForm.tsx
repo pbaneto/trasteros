@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import { GoogleButton } from './GoogleButton';
 import { PasswordInput } from '../layout/PasswordInput';
+import { ROUTES } from '../../utils/constants';
 
 const registerSchema = z.object({
   firstName: z.string()
@@ -46,6 +48,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
+  const navigate = useNavigate();
   
   const {
     register,
@@ -59,6 +62,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     setIsLoading(true);
     try {
       await signUp(data.email, data.password, data.firstName, data.lastName, data.phone);
+      // Navigate to email confirmation page with email in state
+      navigate(ROUTES.EMAIL_CONFIRMATION_PENDING, { 
+        state: { email: data.email } 
+      });
+      // Close modal if callback provided
       if (onSuccess) {
         onSuccess();
       }

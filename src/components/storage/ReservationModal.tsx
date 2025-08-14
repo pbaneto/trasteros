@@ -29,7 +29,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
 
   const handleProceed = () => {
     if (!user) {
-      navigate(ROUTES.LOGIN);
+      navigate(ROUTES.HOME);
       return;
     }
 

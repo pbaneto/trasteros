@@ -102,7 +102,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth }) => {
               </div>
             ) : (
               <div className="flex items-center space-x-4">
-                {onOpenAuth ? (
+                {onOpenAuth && (
                   <>
                     <button
                       onClick={() => onOpenAuth('login')}
@@ -116,21 +116,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth }) => {
                     >
                       Registrarse
                     </button>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      to={ROUTES.LOGIN}
-                      className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium"
-                    >
-                      Iniciar Sesión
-                    </Link>
-                    <Link
-                      to={ROUTES.REGISTER}
-                      className="btn-primary"
-                    >
-                      Registrarse
-                    </Link>
                   </>
                 )}
               </div>
