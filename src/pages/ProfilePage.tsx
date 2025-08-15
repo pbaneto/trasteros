@@ -27,7 +27,7 @@ export const ProfilePage: React.FC = () => {
   };
 
   return (
-    <ResponsiveLayout title="Mi Perfil" onOpenAuth={openAuthModal}>
+    <ResponsiveLayout title="Mi Perfil">
       <UserProfile initialTab={initialTab} />
       
       <AuthModal 

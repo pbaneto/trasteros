@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -34,13 +34,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   initialTab = 'profile' 
 }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'phone'>(initialTab);
   const [isLoading, setIsLoading] = useState(false);
   const [showPhoneVerification, setShowPhoneVerification] = useState(false);
-
-  useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
+  const [showPasswordForm, setShowPasswordForm] = useState(initialTab === 'password');
 
   // Check if user is coming from password recovery
   const isPasswordRecovery = initialTab === 'password';
@@ -95,6 +91,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 
       toast.success('Contraseña actualizada correctamente');
       passwordForm.reset();
+      setShowPasswordForm(false);
     } catch (error: any) {
       toast.error(error.message || 'Error al actualizar la contraseña');
     } finally {
@@ -105,7 +102,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const handlePhoneVerified = () => {
     setShowPhoneVerification(false);
     toast.success('Teléfono verificado correctamente');
-    // Refresh user data or update local state
   };
 
   const handleDeleteAccount = async () => {
@@ -136,8 +132,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 
       if (profileError) throw profileError;
 
-      // Note: Supabase doesn't allow deleting auth users from the client
-      // This would need to be handled by an admin function or webhook
       toast.success('Solicitud de eliminación enviada. Tu cuenta será eliminada en 24 horas.');
       
     } catch (error: any) {
@@ -147,312 +141,282 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     }
   };
 
-  const tabs = [
-    { id: 'profile', name: 'Información Personal', icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-      </svg>
-    )},
-    { id: 'password', name: 'Seguridad', icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-      </svg>
-    )},
-    { id: 'phone', name: 'Verificación', icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-      </svg>
-    )},
-  ];
-
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full">
       <div className="bg-white shadow rounded-lg overflow-hidden">
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8 px-6">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                  activeTab === tab.id
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab.icon}
-                <span>{tab.name}</span>
-              </button>
-            ))}
-          </nav>
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">Mi Perfil</h2>
         </div>
 
-        <div className="p-6">
-          {/* Profile Tab */}
-          {activeTab === 'profile' && (
-            <div>
-              <div className="mb-6">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Información Personal
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Actualiza tu información personal y de contacto.
-                </p>
-              </div>
+        <div className="p-6 space-y-8">
+          {/* Personal Information Section */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Información Personal
+            </h3>
 
-              <form onSubmit={profileForm.handleSubmit(updateProfile)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Nombre
-                    </label>
-                    <input
-                      {...profileForm.register('firstName')}
-                      type="text"
-                      className="input-field mt-1"
-                    />
-                    {profileForm.formState.errors.firstName && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {profileForm.formState.errors.firstName.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Apellidos
-                    </label>
-                    <input
-                      {...profileForm.register('lastName')}
-                      type="text"
-                      className="input-field mt-1"
-                    />
-                    {profileForm.formState.errors.lastName && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {profileForm.formState.errors.lastName.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Email
-                    </label>
-                    <input
-                      {...profileForm.register('email')}
-                      type="email"
-                      disabled
-                      className="input-field mt-1 bg-gray-50 cursor-not-allowed"
-                    />
-                    <p className="mt-1 text-sm text-gray-500">
-                      El email no se puede cambiar
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Teléfono
-                    </label>
-                    <input
-                      {...profileForm.register('phone')}
-                      type="tel"
-                      className="input-field mt-1"
-                      placeholder="+34612345678"
-                    />
-                    {user?.phoneVerified && (
-                      <p className="mt-1 text-sm text-green-600 flex items-center">
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        Verificado
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isLoading ? 'Guardando...' : 'Guardar Cambios'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* Password Tab */}
-          {activeTab === 'password' && (
-            <div>
-              <div className="mb-6">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Cambiar Contraseña
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Asegúrate de usar una contraseña segura.
-                </p>
-              </div>
-
-              <form onSubmit={passwordForm.handleSubmit(updatePassword)} className="space-y-6">
-                {!isPasswordRecovery && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Contraseña Actual
-                    </label>
-                    <input
-                      {...passwordForm.register('currentPassword')}
-                      type="password"
-                      className="input-field mt-1"
-                      required
-                    />
-                    {passwordForm.formState.errors.currentPassword && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {passwordForm.formState.errors.currentPassword.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {isPasswordRecovery && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                    <div className="flex">
-                      <svg className="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <div className="ml-3">
-                        <h3 className="text-sm font-medium text-blue-800">
-                          Restablecimiento de Contraseña
-                        </h3>
-                        <p className="mt-1 text-sm text-blue-700">
-                          Has accedido desde un enlace de recuperación. Establece tu nueva contraseña a continuación.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
+            <form onSubmit={profileForm.handleSubmit(updateProfile)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Nueva Contraseña
+                    Nombre
                   </label>
                   <input
-                    {...passwordForm.register('newPassword')}
-                    type="password"
+                    {...profileForm.register('firstName')}
+                    type="text"
                     className="input-field mt-1"
                   />
-                  {passwordForm.formState.errors.newPassword && (
+                  {profileForm.formState.errors.firstName && (
                     <p className="mt-1 text-sm text-red-600">
-                      {passwordForm.formState.errors.newPassword.message}
+                      {profileForm.formState.errors.firstName.message}
                     </p>
                   )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Confirmar Nueva Contraseña
+                    Apellidos
                   </label>
                   <input
-                    {...passwordForm.register('confirmPassword')}
-                    type="password"
+                    {...profileForm.register('lastName')}
+                    type="text"
                     className="input-field mt-1"
                   />
-                  {passwordForm.formState.errors.confirmPassword && (
+                  {profileForm.formState.errors.lastName && (
                     <p className="mt-1 text-sm text-red-600">
-                      {passwordForm.formState.errors.confirmPassword.message}
+                      {profileForm.formState.errors.lastName.message}
                     </p>
                   )}
                 </div>
 
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isLoading ? 'Actualizando...' : 'Actualizar Contraseña'}
-                  </button>
-                </div>
-                {/* Danger Zone */}
-                <div className="border-t border-gray-200 px-6 py-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Elimina permanentemente tu cuenta y todos tus datos asociados.
-                      </p>
-                    </div>
-                    <button
-                      onClick={handleDeleteAccount}
-                      disabled={isLoading}
-                      className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Eliminar Cuenta
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* Phone Verification Tab */}
-          {activeTab === 'phone' && (
-            <div>
-              <div className="mb-6">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Verificación de Teléfono
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Verifica tu número de teléfono para mayor seguridad.
-                </p>
-              </div>
-
-              {user?.phoneVerified ? (
-                <div className="text-center py-8">
-                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                    <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <h3 className="mt-4 text-lg font-medium text-gray-900">
-                    Teléfono Verificado
-                  </h3>
-                  <p className="mt-2 text-sm text-gray-500">
-                    Tu número de teléfono {user.phone} está verificado.
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Email
+                  </label>
+                  <input
+                    {...profileForm.register('email')}
+                    type="email"
+                    disabled
+                    className="input-field mt-1 bg-gray-50 cursor-not-allowed"
+                  />
+                  <p className="mt-1 text-sm text-gray-500">
+                    El email no se puede cambiar
                   </p>
                 </div>
-              ) : (
+
                 <div>
-                  {!showPhoneVerification ? (
-                    <div className="text-center py-8">
-                      <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
-                        <svg className="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L4.732 8.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                      </div>
-                      <h3 className="mt-4 text-lg font-medium text-gray-900">
-                        Teléfono No Verificado
-                      </h3>
-                      <p className="mt-2 text-sm text-gray-500">
-                        Verifica tu teléfono para recibir notificaciones importantes.
-                      </p>
-                      <button
-                        onClick={() => setShowPhoneVerification(true)}
-                        className="mt-4 btn-primary"
-                      >
-                        Verificar Teléfono
-                      </button>
-                    </div>
-                  ) : (
-                    <PhoneVerification onVerified={handlePhoneVerified} />
+                  <label className="block text-sm font-medium text-gray-700">
+                    Teléfono
+                  </label>
+                  <input
+                    {...profileForm.register('phone')}
+                    type="tel"
+                    className="input-field mt-1"
+                    placeholder="+34612345678"
+                  />
+                  {user?.phoneVerified && (
+                    <p className="mt-1 text-sm text-green-600 flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Verificado
+                    </p>
                   )}
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-gray-200"></div>
+
+          {/* Security Section */}
+          <div className="space-y-6">
+            {/* Password Change Section */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Contraseña
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Cambia tu contraseña para mayor seguridad
+                  </p>
+                </div>
+                {!showPasswordForm && (
+                  <button
+                    onClick={() => setShowPasswordForm(true)}
+                    className="text-primary-600 hover:text-primary-500 font-medium text-sm"
+                  >
+                    Cambiar
+                  </button>
+                )}
+              </div>
+
+              {showPasswordForm && (
+                <form onSubmit={passwordForm.handleSubmit(updatePassword)} className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                  {!isPasswordRecovery && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Contraseña Actual
+                      </label>
+                      <input
+                        {...passwordForm.register('currentPassword')}
+                        type="password"
+                        className="input-field mt-1"
+                        required
+                      />
+                      {passwordForm.formState.errors.currentPassword && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {passwordForm.formState.errors.currentPassword.message}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {isPasswordRecovery && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                      <div className="flex">
+                        <svg className="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="ml-3">
+                          <h3 className="text-sm font-medium text-blue-800">
+                            Restablecimiento de Contraseña
+                          </h3>
+                          <p className="mt-1 text-sm text-blue-700">
+                            Has accedido desde un enlace de recuperación. Establece tu nueva contraseña a continuación.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Nueva Contraseña
+                    </label>
+                    <input
+                      {...passwordForm.register('newPassword')}
+                      type="password"
+                      className="input-field mt-1"
+                    />
+                    {passwordForm.formState.errors.newPassword && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {passwordForm.formState.errors.newPassword.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Confirmar Nueva Contraseña
+                    </label>
+                    <input
+                      {...passwordForm.register('confirmPassword')}
+                      type="password"
+                      className="input-field mt-1"
+                    />
+                    {passwordForm.formState.errors.confirmPassword && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {passwordForm.formState.errors.confirmPassword.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPasswordForm(false);
+                        passwordForm.reset();
+                      }}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? 'Actualizando...' : 'Actualizar Contraseña'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {/* Phone Verification Section */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Verificación de Teléfono
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {user?.phoneVerified 
+                      ? `Tu teléfono ${user.phone} está verificado` 
+                      : 'Verifica tu teléfono para mayor seguridad'
+                    }
+                  </p>
+                </div>
+                {user?.phoneVerified ? (
+                  <div className="flex items-center text-green-600">
+                    <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-sm font-medium">Verificado</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowPhoneVerification(true)}
+                    className="text-primary-600 hover:text-primary-500 font-medium text-sm"
+                  >
+                    Verificar
+                  </button>
+                )}
+              </div>
+
+              {!user?.phoneVerified && showPhoneVerification && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <PhoneVerification onVerified={handlePhoneVerified} />
                 </div>
               )}
             </div>
-          )}
-        </div>
 
+            {/* Account Deletion */}
+            <div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Eliminar Cuenta
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Esta acción no se puede deshacer
+                  </p>
+                </div>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={isLoading}
+                  className="text-red-600 hover:text-red-500 font-medium text-sm disabled:opacity-50"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
