@@ -10,13 +10,11 @@ import { transformRentals, transformPayments } from '../../utils/mappers';
 
 interface ActiveUnitsTableProps {
   onGenerateQR?: (rental: Rental) => void;
-  onRenewRental?: (rental: Rental) => void;
   onCancelSubscription?: (rental: Rental) => void;
 }
 
 export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
   onGenerateQR,
-  onRenewRental,
   onCancelSubscription,
 }) => {
   const [rentals, setRentals] = useState<Rental[]>([]);
@@ -320,393 +318,193 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
     );
   }
 
-  console.log('Rentals:', rentals)
   return (
-    <div className="bg-white shadow rounded-lg overflow-hidden">
-      <div className="px-4 py-5 sm:px-6">
-        <h3 className="text-lg leading-6 font-medium text-gray-900">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
           Mis Trasteros
         </h3>
+        <span className="text-sm text-gray-500 dark:text-gray-400">
+          {rentals.length} {rentals.length === 1 ? 'trastero' : 'trasteros'}
+        </span>
       </div>
 
-      {/* Mobile Card Layout */}
-      <div className="block lg:hidden">
-        <div className="space-y-4 p-4">
-          {rentals.map((rental) => (
-            <div key={rental.id} className="bg-white border border-gray-200 rounded-lg shadow-sm">
-              <div className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex-shrink-0 h-12 w-12">
-                      <div className="h-12 w-12 rounded-lg bg-primary-100 flex items-center justify-center">
-                        <span className="text-sm font-medium text-primary-600">
-                          {rental.unit?.sizeM2}m²
-                        </span>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-base font-medium text-gray-900">
-                        Trastero {rental.unit?.unitNumber}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {rental.unit?.locationDescription}
-                      </div>
+      {/* Professional Cards Grid - Wider on Desktop */}
+      <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2">
+        {rentals.map((rental) => (
+          <div key={rental.id} className="w-full bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 hover:shadow-lg transition-shadow duration-300">
+            {/* Card Header with Unit Icon and Status */}
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center space-x-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-16 h-16 bg-blue-100 rounded-xl dark:bg-blue-900 flex items-center justify-center">
+                      <svg className="w-8 h-8 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4m0 0v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
                     </div>
                   </div>
-                  <button
-                    onClick={() => toggleRentalExpansion(rental.id)}
-                    className="text-gray-400 hover:text-gray-600 focus:outline-none p-1"
-                  >
-                    <svg
-                      className={`w-5 h-5 transition-transform ${
-                        expandedRentals.has(rental.id) ? 'rotate-90' : ''
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="space-y-2 mb-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">Estado:</span>
-                    <div className="flex flex-col items-end">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(rental.status)}`}>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h5 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-1">
+                          Trastero {rental.unit?.unitNumber}
+                        </h5>
+                        <p className="text-base text-gray-500 dark:text-gray-400">
+                          {rental.unit?.sizeM2}m² • {rental.unit?.locationDescription}
+                        </p>
+                      </div>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(rental.status)}`}>
                         {getStatusText(rental.status)}
                       </span>
-                      {rental.status === 'active' && isExpiringSoon(rental.endDate) && (
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800 mt-1">
-                          Próximo a vencer
-                        </span>
-                      )}
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">Vencimiento:</span>
-                    <span className={`text-sm ${isExpiringSoon(rental.endDate) ? 'text-orange-600 font-medium' : 'text-gray-900'}`}>
-                      {rental.endDate ? format(new Date(rental.endDate + 'T00:00:00'), 'dd MMM yyyy', { locale: es }) : 'No definido'}
+              {/* Expiry Warning */}
+              {rental.status === 'active' && isExpiringSoon(rental.endDate) && (
+                <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg dark:bg-orange-900/20 dark:border-orange-800">
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-orange-600 dark:text-orange-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <span className="text-base font-medium text-orange-800 dark:text-orange-200">
+                      Próximo a vencer
                     </span>
                   </div>
+                </div>
+              )}
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">Precio:</span>
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-gray-900">
-                        {formatPrice(rental.price + (rental.insuranceAmount || 0))}
+              {/* Two-Column Layout for Wider Cards */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* Left Column - Unit Details */}
+                <div className="space-y-4">
+                  <h6 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide">Detalles del Trastero</h6>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Renovación:</span>
+                      <span className={`text-sm font-semibold ${isExpiringSoon(rental.endDate) ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-white'}`}>
+                        {rental.endDate ? format(new Date(rental.endDate + 'T00:00:00'), 'dd MMM yyyy', { locale: es }) : 'No definido'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Precio mensual:</span>
+                      <div className="text-right">
+                        <span className="text-xl font-bold text-gray-900 dark:text-white">
+                          {formatPrice(rental.price + (rental.insuranceAmount || 0))}
+                        </span>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">suscripción</p>
                       </div>
-                      <div className="text-xs text-gray-500">pago único</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
-                  {shouldShowVerCodigo(rental) && onGenerateQR && (
-                    <button
-                      onClick={() => onGenerateQR(rental)}
-                      className="flex-1 min-w-0 px-3 py-2 text-xs font-medium text-primary-600 bg-primary-50 border border-primary-200 rounded-md hover:bg-primary-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      title="Ver código de acceso"
-                    >
-                      Ver código
-                    </button>
-                  )}
-                  {onRenewRental && (
-                    <button
-                      onClick={() => onRenewRental(rental)}
-                      className="flex-1 min-w-0 px-3 py-2 text-xs font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500"
-                    >
-                      Renovar
-                    </button>
-                  )}
-                  {rental.status === 'active' && (
-                    <button
-                      onClick={() => handleCancelClick(rental)}
-                      className="flex-1 min-w-0 px-3 py-2 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500"
-                    >
-                      Cancelar
-                    </button>
-                  )}
-                </div>
-
-                {expandedRentals.has(rental.id) && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <h4 className="text-sm font-medium text-gray-900 mb-3">Historial de Pagos</h4>
-                    {loadingPayments.has(rental.id) ? (
-                      <div className="animate-pulse">
-                        <div className="space-y-2">
-                          {[...Array(2)].map((_, i) => (
-                            <div key={i} className="h-16 bg-gray-200 rounded"></div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {rentalPayments[rental.id]?.length > 0 ? (
-                          rentalPayments[rental.id].map((payment) => (
-                            <div key={payment.id} className="bg-gray-50 rounded-lg p-3 border">
-                              <div className="flex items-start justify-between">
-                                <div className="flex items-center space-x-3">
-                                  <span className="text-gray-400 mt-0.5">
-                                    {getPaymentMethodIcon(payment.paymentMethod)}
-                                  </span>
-                                  <div>
-                                    <div className="text-sm font-medium text-gray-900">
-                                      {formatPrice(payment.amount)}
-                                    </div>
-                                    <div className="text-xs text-gray-500">
-                                      {payment.paymentDate 
-                                        ? format(new Date(payment.paymentDate), 'dd MMM yyyy HH:mm', { locale: es })
-                                        : 'No definido'
-                                      }
-                                    </div>
-                                    <div className="text-xs text-gray-500">
-                                      {payment.paymentMethod === 'card' && 'Tarjeta'}
-                                      {payment.paymentMethod === 'google_pay' && 'Google Pay'}
-                                      {payment.paymentMethod === 'paypal' && 'PayPal'}
-                                      {!['card', 'google_pay', 'paypal'].includes(payment.paymentMethod) && payment.paymentMethod}
-                                      {payment.paymentType === 'subscription' && ' • Suscripción'}
-                                      {payment.paymentType === 'single' && ' • Pago único'}
-                                    </div>
-                                  </div>
-                                </div>
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(payment.status)}`}>
-                                  {getPaymentStatusText(payment.status)}
-                                </span>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-4">
-                            <svg
-                              className="mx-auto h-8 w-8 text-gray-400"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                              />
-                            </svg>
-                            <p className="mt-1 text-sm text-gray-500">
-                              No hay pagos registrados para este trastero
-                            </p>
-                          </div>
-                        )}
-                      </div>
+                {/* Right Column - Actions */}
+                <div className="space-y-4">
+                  <h6 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide">Acciones</h6>
+                  <div className="space-y-3">
+                    {shouldShowVerCodigo(rental) && onGenerateQR && (
+                      <button
+                        onClick={() => onGenerateQR(rental)}
+                        className="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-center text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-900 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-800 dark:focus:ring-blue-800"
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
+                        </svg>
+                        Ver código de acceso
+                      </button>
                     )}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Desktop Table Layout */}
-      <div className="hidden lg:block overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Trastero
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Estado
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Vencimiento
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Precio
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white">
-            {rentals.map((rental) => (
-              <React.Fragment key={rental.id}>
-                <tr className="hover:bg-gray-50 border-b border-gray-200">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                    
                     <button
                       onClick={() => toggleRentalExpansion(rental.id)}
-                      className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                      className="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-center text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600 dark:focus:ring-gray-700"
                     >
-                      <svg
-                        className={`w-5 h-5 transition-transform ${
-                          expandedRentals.has(rental.id) ? 'rotate-90' : ''
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
+                      Ver historial de pagos
                     </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className="h-10 w-10 rounded-lg bg-primary-100 flex items-center justify-center">
-                          <span className="text-sm font-medium text-primary-600">
-                            {rental.unit?.sizeM2}m²
-                          </span>
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          Trastero {rental.unit?.unitNumber}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {rental.unit?.locationDescription}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(rental.status)}`}>
-                      {getStatusText(rental.status)}
-                    </span>
-                    {rental.status === 'active' && isExpiringSoon(rental.endDate) && (
-                      <div className="mt-1">
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
-                          Próximo a vencer
-                        </span>
-                      </div>
+
+                    {rental.status === 'active' && (
+                      <button
+                        onClick={() => handleCancelClick(rental)}
+                        className="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-center text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 focus:ring-4 focus:outline-none focus:ring-red-300 dark:bg-red-900 dark:border-red-600 dark:text-red-300 dark:hover:bg-red-800 dark:focus:ring-red-800"
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Cancelar suscripción
+                      </button>
                     )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className={isExpiringSoon(rental.endDate) ? 'text-orange-600 font-medium' : ''}>
-                      {rental.endDate ? format(new Date(rental.endDate + 'T00:00:00'), 'dd MMM yyyy', { locale: es }) : 'No definido'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Expandable Payment History - Full Width */}
+              {expandedRentals.has(rental.id) && (
+                <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <h6 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wide">Historial de Pagos</h6>
+                  {loadingPayments.has(rental.id) ? (
+                    <div className="animate-pulse space-y-3">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="h-20 bg-gray-200 rounded-lg dark:bg-gray-700"></div>
+                      ))}
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="font-medium">
-                      {formatPrice(rental.price + (rental.insuranceAmount || 0))}
-                    </div>
-                    <div className="text-xs text-gray-500">pago único</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex flex-col items-end space-y-1">
-                      {shouldShowVerCodigo(rental) && onGenerateQR && (
-                        <button
-                          onClick={() => onGenerateQR(rental)}
-                          className="text-primary-600 hover:text-primary-900 text-xs"
-                          title="Ver código de acceso"
-                        >
-                          Ver código
-                        </button>
-                      )}
-                      {onRenewRental && (
-                        <button
-                          onClick={() => onRenewRental(rental)}
-                          className="text-green-600 hover:text-green-900 text-xs"
-                        >
-                          Renovar
-                        </button>
-                      )}
-                      {rental.status === 'active' && (
-                        <button
-                          onClick={() => handleCancelClick(rental)}
-                          className="text-red-600 hover:text-red-900 text-xs"
-                        >
-                          Cancelar
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-                {expandedRentals.has(rental.id) && (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-4 bg-gray-50">
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-gray-900">Historial de Pagos</h4>
-                        {loadingPayments.has(rental.id) ? (
-                          <div className="animate-pulse">
-                            <div className="space-y-2">
-                              {[...Array(2)].map((_, i) => (
-                                <div key={i} className="h-4 bg-gray-200 rounded"></div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {rentalPayments[rental.id]?.length > 0 ? (
-                              rentalPayments[rental.id].map((payment) => (
-                                <div key={payment.id} className="bg-white rounded-lg p-3 shadow-sm border">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                      <span className="text-gray-400">
-                                        {getPaymentMethodIcon(payment.paymentMethod)}
-                                      </span>
-                                      <div>
-                                        <div className="text-sm font-medium text-gray-900">
-                                          {formatPrice(payment.amount)}
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                          {payment.paymentDate 
-                                            ? format(new Date(payment.paymentDate), 'dd MMM yyyy HH:mm', { locale: es })
-                                            : 'No definido'
-                                          }
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                      <span className="text-xs text-gray-500 capitalize">
-                                        {payment.paymentMethod === 'card' && 'Tarjeta'}
-                                        {payment.paymentMethod === 'google_pay' && 'Google Pay'}
-                                        {payment.paymentMethod === 'paypal' && 'PayPal'}
-                                        {!['card', 'google_pay', 'paypal'].includes(payment.paymentMethod) && payment.paymentMethod}
-                                        {payment.paymentType === 'subscription' && ' • Suscripción'}
-                                        {payment.paymentType === 'single' && ' • Pago único'}
-                                      </span>
-                                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(payment.status)}`}>
-                                        {getPaymentStatusText(payment.status)}
-                                      </span>
-                                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {rentalPayments[rental.id]?.length > 0 ? (
+                        rentalPayments[rental.id].map((payment) => (
+                          <div key={payment.id} className="p-4 bg-gray-50 border border-gray-200 rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4">
+                                <span className="text-gray-400 dark:text-gray-500">
+                                  {getPaymentMethodIcon(payment.paymentMethod)}
+                                </span>
+                                <div>
+                                  <div className="text-base font-semibold text-gray-900 dark:text-white">
+                                    {formatPrice(payment.amount)}
+                                  </div>
+                                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                                    {payment.paymentDate 
+                                      ? format(new Date(payment.paymentDate), 'dd MMM yyyy HH:mm', { locale: es })
+                                      : 'No definido'
+                                    }
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    {payment.paymentMethod === 'card' && 'Tarjeta'}
+                                    {payment.paymentMethod === 'google_pay' && 'Google Pay'}
+                                    {payment.paymentMethod === 'paypal' && 'PayPal'}
+                                    {!['card', 'google_pay', 'paypal'].includes(payment.paymentMethod) && payment.paymentMethod}
+                                    {payment.paymentType === 'subscription' && ' • Suscripción'}
+                                    {payment.paymentType === 'single' && ' • Pago único'}
                                   </div>
                                 </div>
-                              ))
-                            ) : (
-                              <div className="text-center py-4">
-                                <svg
-                                  className="mx-auto h-8 w-8 text-gray-400"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                  />
-                                </svg>
-                                <p className="mt-1 text-sm text-gray-500">
-                                  No hay pagos registrados para este trastero
-                                </p>
                               </div>
-                            )}
+                              <span className={`inline-flex items-center px-3 py-1 text-sm font-medium rounded-full ${getPaymentStatusColor(payment.status)}`}>
+                                {getPaymentStatusText(payment.status)}
+                              </span>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
+                        ))
+                      ) : (
+                        <div className="text-center py-8">
+                          <svg className="mx-auto h-10 w-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                            No hay pagos registrados
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Cancellation Confirmation Modal */}

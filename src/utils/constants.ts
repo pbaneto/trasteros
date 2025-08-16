@@ -1,13 +1,11 @@
 export const STORAGE_UNIT_SIZES = {
-  SMALL: { size: 2, label: '2m²' },
-  MEDIUM: { size: 4, label: '4m²' },
-  LARGE: { size: 6, label: '6m²' },
+  SMALL: { size: 2, label: '2m²', price: 75 },
+  MEDIUM: { size: 3, label: '3m²', price: 100 },
+  LARGE: { size: 5, label: '5m²', price: 125 },
+  XLARGE: { size: 6, label: '6m²', price: 150 },
 } as const;
 
-export const UNIT_PRICE = 45;
-
 export const INSURANCE_OPTIONS = [
-  { id: 'none', label: 'Sin seguro', price: 0, coverage: 0 },
   { id: 'basic', label: 'Básico - €2,000', price: 15, coverage: 2000 },
   { id: 'standard', label: 'Estándar - €4,000', price: 20, coverage: 4000 },
   { id: 'premium', label: 'Premium - €8,000', price: 30, coverage: 8000 },
@@ -44,3 +42,9 @@ export const ROUTES = {
   RESET_PASSWORD: '/reset-password',
   EMAIL_CONFIRMATION_PENDING: '/email-confirmation-pending',
 } as const;
+
+// Helper function to get price by size
+export const getPriceBySize = (sizeM2: number): number => {
+  const sizeEntry = Object.values(STORAGE_UNIT_SIZES).find(entry => entry.size === sizeM2);
+  return sizeEntry?.price || STORAGE_UNIT_SIZES.SMALL.price; // fallback to small if not found
+};

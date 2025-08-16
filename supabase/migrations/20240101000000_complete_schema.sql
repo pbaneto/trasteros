@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS users_profile (
 CREATE TABLE IF NOT EXISTS storage_units (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     unit_number VARCHAR(10) UNIQUE NOT NULL,
-    size_m2 INTEGER NOT NULL CHECK (size_m2 IN (2, 4, 6)),
-    price DECIMAL(10,2) NOT NULL DEFAULT 45.00,
+    size_m2 INTEGER NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
     status VARCHAR(20) DEFAULT 'available' CHECK (status IN ('available', 'occupied', 'maintenance')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );

@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { StorageUnit } from '../../types';
 import { formatPrice } from '../../utils/stripe';
-import { UNIT_PRICE, INSURANCE_PRICE, INSURANCE_COVERAGE } from '../../utils/constants';
+import { INSURANCE_PRICE, INSURANCE_COVERAGE, getPriceBySize, ROUTES } from '../../utils/constants';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { ROUTES } from '../../utils/constants';
 
 interface ReservationModalProps {
   unit: StorageUnit;
@@ -25,7 +24,8 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
 
   if (!isOpen) return null;
 
-  const totalPrice = UNIT_PRICE + (includeInsurance ? INSURANCE_PRICE : 0);
+  const unitPrice = getPriceBySize(unit.sizeM2);
+  const totalPrice = unitPrice + (includeInsurance ? INSURANCE_PRICE : 0);
 
   const handleProceed = () => {
     if (!user) {
@@ -39,7 +39,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       unitNumber: unit.unitNumber,
       unitSize: unit.sizeM2,
       includeInsurance,
-      price: UNIT_PRICE,
+      price: unitPrice,
       insurancePrice: includeInsurance ? INSURANCE_PRICE : 0,
       totalPrice,
     }));
@@ -83,7 +83,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-gray-700">Precio:</span>
                       <span className="text-sm font-semibold text-gray-900">
-                        {formatPrice(UNIT_PRICE)}
+                        {formatPrice(unitPrice)}
                       </span>
                     </div>
                   </div>

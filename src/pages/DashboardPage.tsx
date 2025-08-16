@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { ActiveUnitsTable } from '../components/dashboard/ActiveUnitsTable';
-import { ContractRenewal } from '../components/dashboard/ContractRenewal';
 import { UnitDetailsPanel } from '../components/storage/UnitDetailsPanel';
 import { ReservationWizard } from '../components/storage/ReservationWizard';
 import { UserProfile } from '../components/dashboard/UserProfile';
@@ -21,15 +20,31 @@ export const DashboardPage: React.FC = () => {
   const [showReservationWizard, setShowReservationWizard] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<AuthMode>('login');
+  const [initialWizardSize, setInitialWizardSize] = useState<number | null>(null);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
+    const wizard = searchParams.get('wizard');
+    const size = searchParams.get('size');
+    
     if (tab === 'perfil') {
       setActiveTab('perfil');
     } else {
       setActiveTab('trasteros');
     }
-  }, [searchParams]);
+
+    if (wizard === 'true') {
+      setShowReservationWizard(true);
+      if (size) {
+        setInitialWizardSize(parseInt(size));
+      }
+      // Remove wizard params from URL to clean it up
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('wizard');
+      newSearchParams.delete('size');
+      setSearchParams(newSearchParams);
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleTabChange = (tab: 'trasteros' | 'perfil') => {
     setActiveTab(tab);
@@ -86,16 +101,14 @@ export const DashboardPage: React.FC = () => {
                 </h1>
                 <p className="text-blue-100 mt-1">Gestiona tus trasteros alquilados y su estado.</p>
               </div>
-              {activeTab === 'trasteros' && (
-                <div>
-                  <button
-                    onClick={() => setShowReservationWizard(true)}
-                    className="text-blue-700 bg-white hover:bg-gray-50 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-100 dark:hover:bg-gray-200 dark:focus:ring-blue-800 w-full sm:w-auto transition-colors"
-                  >
-                    Reservar trastero
-                  </button>
-                </div>
-              )}
+              <div>
+                <button
+                  onClick={() => setShowReservationWizard(true)}
+                  className="text-blue-700 bg-white hover:bg-gray-50 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-100 dark:hover:bg-gray-200 dark:focus:ring-blue-800 w-full sm:w-auto transition-colors"
+                >
+                  Reservar trastero
+                </button>
+              </div>
             </div>
           </div>
           
@@ -146,12 +159,17 @@ export const DashboardPage: React.FC = () => {
                 {/* Units Table */}
                 <ActiveUnitsTable
                   onGenerateQR={handleViewAccess}
-                  onRenewRental={handleRenewRental}
                   onCancelSubscription={handleCancelSubscription}
                 />
               </div>
             ) : (
-              <ReservationWizard onClose={() => setShowReservationWizard(false)} />
+              <ReservationWizard 
+                onClose={() => {
+                  setShowReservationWizard(false);
+                  setInitialWizardSize(null);
+                }} 
+                initialSize={initialWizardSize}
+              />
             )}
           </>
         )}
@@ -160,19 +178,6 @@ export const DashboardPage: React.FC = () => {
           <UserProfile initialTab={searchParams.get('profileTab') as any || 'profile'} />
         )}
       </div>
-
-      {/* Modals */}
-      {selectedRental && (
-        <ContractRenewal
-          rental={selectedRental}
-          isOpen={showRenewalModal}
-          onClose={() => {
-            setShowRenewalModal(false);
-            setSelectedRental(null);
-          }}
-          onRenewalComplete={handleRenewalComplete}
-        />
-      )}
 
       {/* Details Panel - This could also be a modal */}
       {showDetailsPanel && selectedRental && (

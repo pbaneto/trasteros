@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatPrice } from '../../utils/stripe';
-import { UNIT_PRICE, INSURANCE_PRICE, INSURANCE_COVERAGE } from '../../utils/constants';
+import { INSURANCE_PRICE, INSURANCE_COVERAGE, getPriceBySize } from '../../utils/constants';
 
 interface PricingSummaryProps {
   unitSize: number;
@@ -13,7 +13,7 @@ export const PricingSummary: React.FC<PricingSummaryProps> = ({
   includeInsurance,
   className = '',
 }) => {
-  const unitPrice = UNIT_PRICE;
+  const unitPrice = getPriceBySize(unitSize);
   const insurancePrice = includeInsurance ? INSURANCE_PRICE : 0;
   const totalPrice = unitPrice + insurancePrice;
 

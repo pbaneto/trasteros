@@ -39,7 +39,7 @@ export const useStorageUnits = () => {
         setStorageUnits(transformedUnits);
 
         // Calculate availability by size
-        const availabilityBySize = [2, 4, 6].map(size => {
+        const availabilityBySize = [2, 3, 5, 6].map(size => {
           const unitsOfSize = transformedUnits.filter(unit => unit.sizeM2 === size);
           const availableUnits = unitsOfSize.filter(unit => unit.status === 'available');
           

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Footer } from '../components/layout/Footer';
 import { Header } from '../components/layout/Header';
-import { ROUTES, UNIT_PRICE, STORAGE_UNIT_SIZES } from '../utils/constants';
+import { ROUTES, STORAGE_UNIT_SIZES } from '../utils/constants';
 import { formatPrice } from '../utils/stripe';
 import { useAuth } from '../contexts/AuthContext';
 import { useStorageUnits } from '../hooks/useStorageUnits';
@@ -67,17 +67,18 @@ export const HomePage: React.FC = () => {
     { 
       ...STORAGE_UNIT_SIZES.SMALL, 
       description: 'Perfecto para cajas y objetos pequeños',
-      availability: availability.find(a => a.size === 2)
     },
     { 
       ...STORAGE_UNIT_SIZES.MEDIUM, 
       description: 'Ideal para muebles y electrodomésticos',
-      availability: availability.find(a => a.size === 4)
     },
     { 
       ...STORAGE_UNIT_SIZES.LARGE, 
       description: 'Espacio amplio para mudanzas completas',
-      availability: availability.find(a => a.size === 6)
+    },
+    { 
+      ...STORAGE_UNIT_SIZES.XLARGE, 
+      description: 'Espacio amplio para mudanzas completas',
     },
   ];
 
@@ -120,13 +121,68 @@ export const HomePage: React.FC = () => {
         </main>
       </div>
 
+      {/* Sizes Section - Full Width */}
+      <div id="sizes-section" className="bg-gray-50 py-12 w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+              Elige el tamaño perfecto
+            </h2>
+            <p className="mt-4 text-xl text-gray-600">
+              Tenemos el trastero ideal para cada necesidad
+            </p>
+          </div>
+
+          <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {sizes.map((size) => (
+              <div
+                key={size.size}
+                className="w-full max-w-sm mx-auto p-4 bg-white border border-gray-200 rounded-lg shadow-sm sm:p-8 dark:bg-gray-800 dark:border-gray-700"
+              >
+                <h5 className="mb-4 text-xl font-medium text-gray-500 dark:text-gray-400">
+                  {size.label}
+                </h5>
+                <div className="flex items-baseline text-gray-900 dark:text-white">
+                  <span className="text-5xl font-extrabold tracking-tight">
+                    {formatPrice(size.price).replace('€', '')}
+                  </span>
+                  <span className="ms-1 text-xl font-normal text-gray-500 dark:text-gray-400">
+                    €/mes
+                  </span>
+                </div>
+                <ul role="list" className="space-y-5 my-7">
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (user) {
+                      navigate(`${ROUTES.DASHBOARD}?wizard=true&size=${size.size}`);
+                    } else {
+                      openAuthModal('login');
+                    }
+                  }}
+                  disabled={unitsLoading}
+                  className={`font-medium rounded-lg text-sm px-5 py-2.5 inline-flex justify-center w-full text-center ${
+                    unitsLoading
+                      ? 'text-gray-500 bg-gray-300 cursor-not-allowed'
+                      : 'text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-200 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-900'
+                  }`}
+                >
+                  {unitsLoading 
+                    ? 'Cargando...'
+                    : 'Reservar Ahora'
+                  }
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
       {/* Features Section - Full Width */}
       <div className="py-12 bg-white w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="lg:text-center">
-            <h2 className="text-base text-blue-600 font-semibold tracking-wide uppercase">
-              Características
-            </h2>
             <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
               Todo lo que necesitas
             </p>
@@ -154,123 +210,6 @@ export const HomePage: React.FC = () => {
                 </div>
               ))}
             </dl>
-          </div>
-        </div>
-      </div>
-
-      {/* Sizes Section - Full Width */}
-      <div id="sizes-section" className="bg-gray-50 py-12 w-full">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-              Elige el tamaño perfecto
-            </h2>
-            <p className="mt-4 text-xl text-gray-600">
-              Tenemos el trastero ideal para cada necesidad
-            </p>
-          </div>
-
-          <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {sizes.map((size) => (
-              <div
-                key={size.size}
-                className="w-full max-w-sm mx-auto p-4 bg-white border border-gray-200 rounded-lg shadow-sm sm:p-8 dark:bg-gray-800 dark:border-gray-700"
-              >
-                <h5 className="mb-4 text-xl font-medium text-gray-500 dark:text-gray-400">
-                  {size.label}
-                </h5>
-                <div className="flex items-baseline text-gray-900 dark:text-white">
-                  <span className="text-5xl font-extrabold tracking-tight">
-                    {formatPrice(UNIT_PRICE).replace('€', '')}
-                  </span>
-                  <span className="ms-1 text-xl font-normal text-gray-500 dark:text-gray-400">
-                    € pago único
-                  </span>
-                </div>
-                <ul role="list" className="space-y-5 my-7">
-                  <li className="flex items-center">
-                    <svg className="shrink-0 w-4 h-4 text-blue-700 dark:text-blue-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
-                    </svg>
-                    <span className="text-base font-normal leading-tight text-gray-500 dark:text-gray-400 ms-3">
-                      {size.size}m² de espacio
-                    </span>
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="shrink-0 w-4 h-4 text-blue-700 dark:text-blue-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
-                    </svg>
-                    <span className="text-base font-normal leading-tight text-gray-500 dark:text-gray-400 ms-3">
-                      Acceso 24/7
-                    </span>
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="shrink-0 w-4 h-4 text-blue-700 dark:text-blue-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
-                    </svg>
-                    <span className="text-base font-normal leading-tight text-gray-500 dark:text-gray-400 ms-3">
-                      Código digital
-                    </span>
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="shrink-0 w-4 h-4 text-blue-700 dark:text-blue-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
-                    </svg>
-                    <span className="text-base font-normal leading-tight text-gray-500 dark:text-gray-400 ms-3">
-                      Videovigilancia 24/7
-                    </span>
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="shrink-0 w-4 h-4 text-blue-700 dark:text-blue-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
-                    </svg>
-                    <span className="text-base font-normal leading-tight text-gray-500 dark:text-gray-400 ms-3">
-                      Sin permanencia
-                    </span>
-                  </li>
-                  {size.availability && (
-                    <li className="flex items-center">
-                      <svg className={`shrink-0 w-4 h-4 ${size.availability.availableCount > 0 ? 'text-green-600' : 'text-red-500'}`} aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
-                      </svg>
-                      <span className={`text-base font-normal leading-tight ms-3 ${
-                        size.availability.availableCount > 0 
-                          ? 'text-green-600' 
-                          : 'text-red-500'
-                      }`}>
-                        {size.availability.availableCount > 0 
-                          ? `${size.availability.availableCount} disponibles`
-                          : 'No disponible'
-                        }
-                      </span>
-                    </li>
-                  )}
-                </ul>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (user) {
-                      navigate(`${ROUTES.CHECKOUT}?size=${size.size}`);
-                    } else {
-                      openAuthModal('login');
-                    }
-                  }}
-                  disabled={unitsLoading || (size.availability && size.availability.availableCount === 0)}
-                  className={`font-medium rounded-lg text-sm px-5 py-2.5 inline-flex justify-center w-full text-center ${
-                    unitsLoading || (size.availability && size.availability.availableCount === 0)
-                      ? 'text-gray-500 bg-gray-300 cursor-not-allowed'
-                      : 'text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-200 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-900'
-                  }`}
-                >
-                  {unitsLoading 
-                    ? 'Cargando...'
-                    : size.availability && size.availability.availableCount === 0
-                      ? 'No Disponible'
-                      : 'Reservar Ahora'
-                  }
-                </button>
-              </div>
-            ))}
           </div>
         </div>
       </div>

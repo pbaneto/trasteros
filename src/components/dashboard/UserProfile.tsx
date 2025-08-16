@@ -209,7 +209,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   );
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="space-y-6">
       {!user?.phoneVerified && (
         <div className="flex p-4 text-sm text-amber-800 rounded-lg bg-amber-50 dark:bg-gray-800 dark:text-amber-300" role="alert">
           <svg className="flex-shrink-0 w-4 h-4 mr-3 mt-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
