@@ -18,8 +18,6 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
   const { availability } = useStorageUnits();
   const [currentStep, setCurrentStep] = useState<Step>('size');
   const [selectedSize, setSelectedSize] = useState<number | null>(initialSize || null);
-  const [paymentType, setPaymentType] = useState<'single' | 'subscription'>('single');
-  const [selectedMonths, setSelectedMonths] = useState<number>(1);
   const [selectedInsurance, setSelectedInsurance] = useState<string>('none');
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -54,7 +52,7 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
 
   const selectedInsuranceOption = INSURANCE_OPTIONS.find(option => option.id === selectedInsurance);
   const unitPrice = selectedSize ? getPriceBySize(selectedSize) : STORAGE_UNIT_SIZES.SMALL.price;
-  const basePrice = paymentType === 'single' ? unitPrice * selectedMonths : unitPrice;
+  const basePrice = unitPrice;
   const totalPrice = basePrice + (selectedInsuranceOption?.price || 0);
 
   const handleSizeSelect = (size: number) => {
@@ -117,8 +115,8 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
       const response = await supabase.functions.invoke('create-checkout-session', {
         body: {
           unitId: selectedUnit.id,
-          months: paymentType === 'single' ? selectedMonths : 1,
-          paymentType,
+          months: 0,
+          paymentType: 'subscription',
           insurance: selectedInsurance !== 'none',
           insurancePrice: selectedInsuranceOption?.price || 0,
           insuranceCoverage: selectedInsuranceOption?.coverage || 0,
