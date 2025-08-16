@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS users_profile (
     last_name VARCHAR(100),
     phone VARCHAR(20),
     phone_verified BOOLEAN DEFAULT FALSE,
+    verification_code VARCHAR(6),
+    verification_code_expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );

@@ -11,7 +11,7 @@ import { AuthModal, AuthMode } from '../components/auth/AuthModal';
 export const HomePage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { availability, loading: unitsLoading, error: unitsError } = useStorageUnits();
+  const { availability, loading: unitsLoading } = useStorageUnits();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
 
@@ -83,38 +83,18 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Sticky Header */}
-      <header className="fixed top-0 left-0 right-0 bg-primary-600 shadow-sm z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-end items-center h-16">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => openAuthModal('login')}
-                className="text-white hover:text-primary-100 px-3 py-2 text-sm font-medium transition-colors"
-              >
-                Iniciar Sesión
-              </button>
-              <button
-                onClick={() => openAuthModal('register')}
-                className="bg-white text-primary-600 hover:bg-gray-50 px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Registrarse
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-      {/* <Header /> */}
+      {/* Header */}
+      <Header onOpenAuth={openAuthModal} />
 
       {/* Hero Section - Full Width */}
-      <div className="relative bg-gradient-to-br from-primary-500 to-primary-700 overflow-hidden pt-16">
+      <div className="relative bg-gradient-to-br from-blue-600 to-blue-800 overflow-hidden pt-16">
         <main className="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28 pb-8 sm:pb-16 md:pb-20 lg:pb-28 xl:pb-32">
           <div className="text-center">
             <h1 className="text-4xl tracking-tight font-extrabold text-white sm:text-5xl md:text-6xl">
               <span className="block xl:inline">Almacenamiento</span>{' '}
               <span className="block xl:inline">seguro y accesible</span>
             </h1>
-            <p className="mt-3 text-base text-primary-100 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl">
+            <p className="mt-3 text-base text-blue-100 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl">
               Alquila tu trastero de forma rápida y sencilla. Acceso 24/7, 
               códigos digitales y la mejor seguridad para tus pertenencias.
             </p>
@@ -122,7 +102,7 @@ export const HomePage: React.FC = () => {
               <div className="rounded-md shadow">
                 <button
                   onClick={() => document.getElementById('sizes-section')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-primary-600 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10"
+                  className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10"
                 >
                   Alquila un trastero
                 </button>
@@ -130,7 +110,7 @@ export const HomePage: React.FC = () => {
               <div className="mt-3 sm:mt-0 sm:ml-3">
                 <button
                   onClick={() => user ? navigate(ROUTES.DASHBOARD) : openAuthModal('login')}
-                  className="w-full flex items-center justify-center px-8 py-3 border-2 border-white text-base font-medium rounded-md text-white bg-transparent hover:bg-white hover:text-primary-600 md:py-4 md:text-lg md:px-10"
+                  className="w-full flex items-center justify-center px-8 py-3 border-2 border-white text-base font-medium rounded-md text-white bg-transparent hover:bg-white hover:text-blue-600 md:py-4 md:text-lg md:px-10"
                 >
                   Mis trasteros
                 </button>
@@ -144,7 +124,7 @@ export const HomePage: React.FC = () => {
       <div className="py-12 bg-white w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="lg:text-center">
-            <h2 className="text-base text-primary-600 font-semibold tracking-wide uppercase">
+            <h2 className="text-base text-blue-600 font-semibold tracking-wide uppercase">
               Características
             </h2>
             <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
@@ -161,7 +141,7 @@ export const HomePage: React.FC = () => {
               {features.map((feature) => (
                 <div key={feature.name} className="relative">
                   <dt>
-                    <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white">
+                    <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
                       {feature.icon}
                     </div>
                     <p className="ml-16 text-lg leading-6 font-medium text-gray-900">
@@ -194,72 +174,101 @@ export const HomePage: React.FC = () => {
             {sizes.map((size) => (
               <div
                 key={size.size}
-                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                className="w-full max-w-sm mx-auto p-4 bg-white border border-gray-200 rounded-lg shadow-sm sm:p-8 dark:bg-gray-800 dark:border-gray-700"
               >
-                <div className="bg-gradient-to-br from-primary-50 to-primary-100 px-6 py-8">
-                  <div className="text-center">
-                    <div className="w-16 h-16 mx-auto bg-primary-600 rounded-lg flex items-center justify-center mb-4">
-                      <span className="text-2xl font-bold text-white">{size.size}</span>
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                      {size.label}
-                    </h3>
-                    <p className="text-gray-600">{size.description}</p>
-                  </div>
+                <h5 className="mb-4 text-xl font-medium text-gray-500 dark:text-gray-400">
+                  {size.label}
+                </h5>
+                <div className="flex items-baseline text-gray-900 dark:text-white">
+                  <span className="text-5xl font-extrabold tracking-tight">
+                    {formatPrice(UNIT_PRICE).replace('€', '')}
+                  </span>
+                  <span className="ms-1 text-xl font-normal text-gray-500 dark:text-gray-400">
+                    € pago único
+                  </span>
                 </div>
-
-                <div className="px-6 py-6">
-                  <div className="text-center mb-6">
-                    <div className="text-3xl font-bold text-primary-600">
-                      {formatPrice(UNIT_PRICE)}
-                    </div>
-                    <div className="text-gray-500">pago único</div>
-                  </div>
-
-                  <div className="text-center mb-4">
-                    {unitsLoading ? (
-                      <div className="text-gray-500">Cargando disponibilidad...</div>
-                    ) : unitsError ? (
-                      <div className="text-red-500 text-sm">Error cargando disponibilidad</div>
-                    ) : size.availability ? (
-                      <div className={`text-sm font-medium ${
+                <ul role="list" className="space-y-5 my-7">
+                  <li className="flex items-center">
+                    <svg className="shrink-0 w-4 h-4 text-blue-700 dark:text-blue-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+                    </svg>
+                    <span className="text-base font-normal leading-tight text-gray-500 dark:text-gray-400 ms-3">
+                      {size.size}m² de espacio
+                    </span>
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="shrink-0 w-4 h-4 text-blue-700 dark:text-blue-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+                    </svg>
+                    <span className="text-base font-normal leading-tight text-gray-500 dark:text-gray-400 ms-3">
+                      Acceso 24/7
+                    </span>
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="shrink-0 w-4 h-4 text-blue-700 dark:text-blue-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+                    </svg>
+                    <span className="text-base font-normal leading-tight text-gray-500 dark:text-gray-400 ms-3">
+                      Código digital
+                    </span>
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="shrink-0 w-4 h-4 text-blue-700 dark:text-blue-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+                    </svg>
+                    <span className="text-base font-normal leading-tight text-gray-500 dark:text-gray-400 ms-3">
+                      Videovigilancia 24/7
+                    </span>
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="shrink-0 w-4 h-4 text-blue-700 dark:text-blue-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+                    </svg>
+                    <span className="text-base font-normal leading-tight text-gray-500 dark:text-gray-400 ms-3">
+                      Sin permanencia
+                    </span>
+                  </li>
+                  {size.availability && (
+                    <li className="flex items-center">
+                      <svg className={`shrink-0 w-4 h-4 ${size.availability.availableCount > 0 ? 'text-green-600' : 'text-red-500'}`} aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+                      </svg>
+                      <span className={`text-base font-normal leading-tight ms-3 ${
                         size.availability.availableCount > 0 
                           ? 'text-green-600' 
-                          : 'text-red-600'
+                          : 'text-red-500'
                       }`}>
                         {size.availability.availableCount > 0 
                           ? `${size.availability.availableCount} disponibles`
                           : 'No disponible'
                         }
-                      </div>
-                    ) : (
-                      <div className="text-gray-500">-</div>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      if (user) {
-                        navigate(`${ROUTES.CHECKOUT}?size=${size.size}`);
-                      } else {
-                        openAuthModal('login');
-                      }
-                    }}
-                    disabled={unitsLoading || (size.availability && size.availability.availableCount === 0)}
-                    className={`w-full text-center px-4 py-3 rounded-md font-medium transition-colors ${
-                      unitsLoading || (size.availability && size.availability.availableCount === 0)
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-primary-600 text-white hover:bg-primary-700'
-                    }`}
-                  >
-                    {unitsLoading 
-                      ? 'Cargando...'
-                      : size.availability && size.availability.availableCount === 0
-                        ? 'No Disponible'
-                        : 'Reservar Ahora'
+                      </span>
+                    </li>
+                  )}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (user) {
+                      navigate(`${ROUTES.CHECKOUT}?size=${size.size}`);
+                    } else {
+                      openAuthModal('login');
                     }
-                  </button>
-                </div>
+                  }}
+                  disabled={unitsLoading || (size.availability && size.availability.availableCount === 0)}
+                  className={`font-medium rounded-lg text-sm px-5 py-2.5 inline-flex justify-center w-full text-center ${
+                    unitsLoading || (size.availability && size.availability.availableCount === 0)
+                      ? 'text-gray-500 bg-gray-300 cursor-not-allowed'
+                      : 'text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-200 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-900'
+                  }`}
+                >
+                  {unitsLoading 
+                    ? 'Cargando...'
+                    : size.availability && size.availability.availableCount === 0
+                      ? 'No Disponible'
+                      : 'Reservar Ahora'
+                  }
+                </button>
               </div>
             ))}
           </div>

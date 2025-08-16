@@ -11,7 +11,6 @@ import { LoadingSpinner } from './components/ui/LoadingSpinner';
 // Pages
 import { HomePage } from './pages/HomePage';
 import { DashboardPage } from './pages/DashboardPage';
-import { ProfilePage } from './pages/ProfilePage';
 
 // Auth Components
 import { PasswordReset } from './components/auth/PasswordReset';
@@ -110,11 +109,7 @@ function App() {
               />
               <Route
                 path={ROUTES.PROFILE}
-                element={
-                  <ProtectedRoute>
-                    <ProfilePage />
-                  </ProtectedRoute>
-                }
+                element={<Navigate to={`${ROUTES.DASHBOARD}?tab=perfil`} />}
               />
 
               {/* Catch all route - redirect to home */}

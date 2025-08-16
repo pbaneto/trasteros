@@ -9,6 +9,7 @@ import { UserProfile } from '../components/dashboard/UserProfile';
 import { AuthModal, AuthMode } from '../components/auth/AuthModal';
 import { Rental } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { Header } from '../components/layout/Header';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -19,7 +20,7 @@ export const DashboardPage: React.FC = () => {
   const [showDetailsPanel, setShowDetailsPanel] = useState(false);
   const [showReservationWizard, setShowReservationWizard] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalMode] = useState<AuthMode>('login');
+  const [authModalMode, setAuthModalMode] = useState<AuthMode>('login');
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -62,33 +63,78 @@ export const DashboardPage: React.FC = () => {
   };
 
 
+  const openAuthModal = (mode: AuthMode) => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
   const closeAuthModal = () => {
     setIsAuthModalOpen(false);
   };
 
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={handleTabChange}>
+    <DashboardLayout>
+      <Header onOpenAuth={openAuthModal} />
       <div className="space-y-8">
         {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 dark:from-blue-700 dark:to-blue-800 overflow-hidden">
           <div className="px-6 py-8 sm:px-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div className="ml-4 mb-4 sm:mb-0">
+              <div className="mb-4 sm:mb-0">
                 <h1 className="text-2xl font-bold text-white">
                   ¡Hola, {user?.firstName}!
                 </h1>
-                <p className="text-white">Gestiona tus trasteros alquilados y su estado.</p>
+                <p className="text-blue-100 mt-1">Gestiona tus trasteros alquilados y su estado.</p>
               </div>
               {activeTab === 'trasteros' && (
-                <div className="ml-4 sm:mr-4">
+                <div>
                   <button
                     onClick={() => setShowReservationWizard(true)}
-                    className="bg-white text-primary-600 hover:bg-gray-50 font-medium py-2 px-4 rounded-lg shadow transition-colors w-full sm:w-auto"
+                    className="text-blue-700 bg-white hover:bg-gray-50 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-100 dark:hover:bg-gray-200 dark:focus:ring-blue-800 w-full sm:w-auto transition-colors"
                   >
                     Reservar trastero
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+          
+          {/* Tab Navigation */}
+          <div className="border-t border-blue-500/30">
+            <div className="px-6 sm:px-8">
+              <nav className="flex space-x-8">
+                <button
+                  onClick={() => handleTabChange('trasteros')}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === 'trasteros'
+                      ? 'border-white text-white'
+                      : 'border-transparent text-blue-200 hover:text-blue-100 hover:border-blue-300'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    Mis Trasteros
+                  </div>
+                </button>
+                
+                <button
+                  onClick={() => handleTabChange('perfil')}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === 'perfil'
+                      ? 'border-white text-white'
+                      : 'border-transparent text-blue-200 hover:text-blue-100 hover:border-blue-300'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Mi Perfil
+                  </div>
+                </button>
+              </nav>
             </div>
           </div>
         </div>
@@ -103,48 +149,6 @@ export const DashboardPage: React.FC = () => {
                   onRenewRental={handleRenewRental}
                   onCancelSubscription={handleCancelSubscription}
                 />
-
-                {/* Quick Actions */}
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
-                    Acciones Rápidas
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <a
-                      href="tel:+34900000000"
-                      className="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
-                    >
-                      <svg className="w-6 h-6 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
-                      <div className="text-left">
-                        <div className="text-sm font-medium text-gray-900">
-                          Soporte
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          900 000 000
-                        </div>
-                      </div>
-                    </a>
-
-                    <a
-                      href="mailto:info@trasteros.com"
-                      className="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                    >
-                      <svg className="w-6 h-6 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                      <div className="text-left">
-                        <div className="text-sm font-medium text-gray-900">
-                          Email
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Contáctanos
-                        </div>
-                      </div>
-                    </a>
-                  </div>
-                </div>
               </div>
             ) : (
               <ReservationWizard onClose={() => setShowReservationWizard(false)} />
@@ -172,12 +176,12 @@ export const DashboardPage: React.FC = () => {
 
       {/* Details Panel - This could also be a modal */}
       {showDetailsPanel && selectedRental && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-500 bg-opacity-75">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 dark:bg-gray-900/80" aria-labelledby="modal-title" role="dialog" aria-modal="true">
           <div className="flex items-center justify-center min-h-screen p-4">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+            <div className="relative bg-white rounded-lg shadow-lg max-w-4xl w-full max-h-screen overflow-y-auto dark:bg-gray-800">
               <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                     Detalles del Trastero
                   </h2>
                   <button
@@ -185,11 +189,13 @@ export const DashboardPage: React.FC = () => {
                       setShowDetailsPanel(false);
                       setSelectedRental(null);
                     }}
-                    className="text-gray-400 hover:text-gray-500"
+                    className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
+                    type="button"
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
                     </svg>
+                    <span className="sr-only">Cerrar modal</span>
                   </button>
                 </div>
                 

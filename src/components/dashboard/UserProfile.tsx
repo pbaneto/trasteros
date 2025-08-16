@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../utils/supabase';
 import { toast } from 'react-toastify';
-import { PhoneVerification } from '../auth/PhoneVerification';
 
 const profileSchema = z.object({
   firstName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
@@ -35,11 +34,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 }) => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
+  const [verificationStep, setVerificationStep] = useState<'none' | 'code'>('none');
   const [showPasswordForm, setShowPasswordForm] = useState(initialTab === 'password');
 
-  // Check if user is coming from password recovery
-  const isPasswordRecovery = initialTab === 'password';
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -99,9 +96,55 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     }
   };
 
-  const handlePhoneVerified = () => {
-    setShowPhoneVerification(false);
-    toast.success('Teléfono verificado correctamente');
+  const handleSendVerificationCode = async () => {
+    const phoneValue = profileForm.getValues('phone');
+    if (!phoneValue) {
+      toast.error('Introduce un número de teléfono primero');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-whatsapp-verification', {
+        body: { phoneNumber: phoneValue }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Error sending verification code');
+      }
+
+      setVerificationStep('code');
+      toast.success('Código de verificación enviado por WhatsApp');
+    } catch (error: any) {
+      toast.error(error.message || 'Error al enviar el código');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async (code: string) => {
+    const phoneValue = profileForm.getValues('phone');
+    
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.functions.invoke('verify-phone-code', {
+        body: { 
+          phoneNumber: phoneValue, 
+          verificationCode: code 
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Código incorrecto');
+      }
+
+      setVerificationStep('none');
+      toast.success('¡Teléfono verificado correctamente!');
+    } catch (error: any) {
+      toast.error(error.message || 'Código incorrecto');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -141,280 +184,260 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     }
   };
 
+  const inputClasses = "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
+  const buttonClasses = "text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 disabled:opacity-50 disabled:cursor-not-allowed";
+  const secondaryButtonClasses = "text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg border border-gray-200 text-sm font-medium px-4 py-2 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600";
+
+  const FormField: React.FC<{
+    label: string;
+    error?: string;
+    children: React.ReactNode;
+    badge?: React.ReactNode;
+  }> = ({ label, error, children, badge }) => (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium text-gray-900 dark:text-white">
+          {label}
+        </label>
+        {badge}
+      </div>
+      {children}
+      {error && (
+        <p className="text-sm text-red-600 dark:text-red-500">{error}</p>
+      )}
+    </div>
+  );
+
   return (
-    <div className="w-full">
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Mi Perfil</h2>
-        </div>
-
-        <div className="p-6 space-y-8">
-          {/* Personal Information Section */}
+    <div className="max-w-4xl mx-auto space-y-6">
+      {!user?.phoneVerified && (
+        <div className="flex p-4 text-sm text-amber-800 rounded-lg bg-amber-50 dark:bg-gray-800 dark:text-amber-300" role="alert">
+          <svg className="flex-shrink-0 w-4 h-4 mr-3 mt-0.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+          </svg>
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Información Personal
-            </h3>
+            <span className="font-medium">Verificación requerida</span>
+            <div className="mt-1 text-sm">
+              Para alquilar un trastero necesitas verificar tu número de teléfono primero.
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Información Personal
+          </h3>
+        </div>
+        
+        <form onSubmit={profileForm.handleSubmit(updateProfile)} className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField 
+              label="Nombre" 
+              error={profileForm.formState.errors.firstName?.message}
+            >
+              <input
+                {...profileForm.register('firstName')}
+                type="text"
+                className={inputClasses}
+              />
+            </FormField>
 
-            <form onSubmit={profileForm.handleSubmit(updateProfile)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Nombre
-                  </label>
-                  <input
-                    {...profileForm.register('firstName')}
-                    type="text"
-                    className="input-field mt-1"
-                  />
-                  {profileForm.formState.errors.firstName && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {profileForm.formState.errors.firstName.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Apellidos
-                  </label>
-                  <input
-                    {...profileForm.register('lastName')}
-                    type="text"
-                    className="input-field mt-1"
-                  />
-                  {profileForm.formState.errors.lastName && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {profileForm.formState.errors.lastName.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Email
-                  </label>
-                  <input
-                    {...profileForm.register('email')}
-                    type="email"
-                    disabled
-                    className="input-field mt-1 bg-gray-50 cursor-not-allowed"
-                  />
-                  <p className="mt-1 text-sm text-gray-500">
-                    El email no se puede cambiar
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Teléfono
-                  </label>
-                  <input
-                    {...profileForm.register('phone')}
-                    type="tel"
-                    className="input-field mt-1"
-                    placeholder="+34612345678"
-                  />
-                  {user?.phoneVerified && (
-                    <p className="mt-1 text-sm text-green-600 flex items-center">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Verificado
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? 'Guardando...' : 'Guardar Cambios'}
-                </button>
-              </div>
-            </form>
+            <FormField 
+              label="Apellidos" 
+              error={profileForm.formState.errors.lastName?.message}
+            >
+              <input
+                {...profileForm.register('lastName')}
+                type="text"
+                className={inputClasses}
+              />
+            </FormField>
           </div>
 
-          {/* Divider */}
-          <div className="border-t border-gray-200"></div>
+          <FormField label="Email">
+            <input
+              {...profileForm.register('email')}
+              type="email"
+              disabled
+              className="bg-gray-100 border border-gray-300 text-gray-500 text-sm rounded-lg cursor-not-allowed block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-gray-400"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              No se puede cambiar
+            </p>
+          </FormField>
 
-          {/* Security Section */}
-          <div className="space-y-6">
-            {/* Password Change Section */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Contraseña
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Cambia tu contraseña para mayor seguridad
-                  </p>
-                </div>
-                {!showPasswordForm && (
+          <FormField 
+            label="Teléfono"
+            badge={user?.phoneVerified && (
+              <span className="inline-flex items-center bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300">
+                <span className="w-2 h-2 me-1 bg-green-500 rounded-full"></span>
+                Verificado
+              </span>
+            )}
+          >
+            <div className="flex gap-3">
+              <input
+                {...profileForm.register('phone')}
+                type="tel"
+                className={inputClasses}
+                placeholder="+34612345678"
+              />
+              {!user?.phoneVerified && verificationStep === 'none' && (
+                <button
+                  type="button"
+                  onClick={handleSendVerificationCode}
+                  disabled={isLoading}
+                  className={`${buttonClasses} whitespace-nowrap`}
+                >
+                  {isLoading ? 'Enviando...' : 'Verificar'}
+                </button>
+              )}
+            </div>
+            
+            {verificationStep === 'code' && (
+              <div className="mt-4 p-4 bg-blue-50 dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-gray-700">
+                <p className="text-sm text-blue-800 dark:text-blue-300 text-center mb-3">
+                  Hemos enviado un código de 6 dígitos por WhatsApp
+                </p>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-center text-xl tracking-widest dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    placeholder="123456"
+                    maxLength={6}
+                    onChange={(e) => {
+                      if (e.target.value.length === 6) {
+                        handleVerifyCode(e.target.value);
+                      }
+                    }}
+                  />
                   <button
-                    onClick={() => setShowPasswordForm(true)}
-                    className="text-primary-600 hover:text-primary-500 font-medium text-sm"
+                    type="button"
+                    onClick={() => setVerificationStep('none')}
+                    className={`${secondaryButtonClasses} whitespace-nowrap`}
                   >
-                    Cambiar
+                    Cancelar
                   </button>
-                )}
+                </div>
               </div>
+            )}
+          </FormField>
 
-              {showPasswordForm && (
-                <form onSubmit={passwordForm.handleSubmit(updatePassword)} className="space-y-4 bg-gray-50 p-4 rounded-lg">
-                  {!isPasswordRecovery && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Contraseña Actual
-                      </label>
-                      <input
-                        {...passwordForm.register('currentPassword')}
-                        type="password"
-                        className="input-field mt-1"
-                        required
-                      />
-                      {passwordForm.formState.errors.currentPassword && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {passwordForm.formState.errors.currentPassword.message}
-                        </p>
-                      )}
-                    </div>
-                  )}
+          <div className="border-t border-gray-200 dark:border-gray-600 pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-md font-medium text-gray-900 dark:text-white">
+                Contraseña
+              </h4>
+              {!showPasswordForm && (
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordForm(true)}
+                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-sm"
+                >
+                  Cambiar
+                </button>
+              )}
+            </div>
 
-                  {isPasswordRecovery && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                      <div className="flex">
-                        <svg className="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div className="ml-3">
-                          <h3 className="text-sm font-medium text-blue-800">
-                            Restablecimiento de Contraseña
-                          </h3>
-                          <p className="mt-1 text-sm text-blue-700">
-                            Has accedido desde un enlace de recuperación. Establece tu nueva contraseña a continuación.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+            {showPasswordForm && (
+              <div className="space-y-4">
+                <FormField 
+                  label="Contraseña Actual" 
+                  error={passwordForm.formState.errors.currentPassword?.message}
+                >
+                  <input
+                    {...passwordForm.register('currentPassword')}
+                    type="password"
+                    className={inputClasses}
+                    required
+                  />
+                </FormField>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Nueva Contraseña
-                    </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField 
+                    label="Nueva Contraseña" 
+                    error={passwordForm.formState.errors.newPassword?.message}
+                  >
                     <input
                       {...passwordForm.register('newPassword')}
                       type="password"
-                      className="input-field mt-1"
+                      className={inputClasses}
                     />
-                    {passwordForm.formState.errors.newPassword && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {passwordForm.formState.errors.newPassword.message}
-                      </p>
-                    )}
-                  </div>
+                  </FormField>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Confirmar Nueva Contraseña
-                    </label>
+                  <FormField 
+                    label="Confirmar Nueva Contraseña" 
+                    error={passwordForm.formState.errors.confirmPassword?.message}
+                  >
                     <input
                       {...passwordForm.register('confirmPassword')}
                       type="password"
-                      className="input-field mt-1"
+                      className={inputClasses}
                     />
-                    {passwordForm.formState.errors.confirmPassword && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {passwordForm.formState.errors.confirmPassword.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowPasswordForm(false);
-                        passwordForm.reset();
-                      }}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isLoading ? 'Actualizando...' : 'Actualizar Contraseña'}
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
-
-            {/* Phone Verification Section */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Verificación de Teléfono
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {user?.phoneVerified 
-                      ? `Tu teléfono ${user.phone} está verificado` 
-                      : 'Verifica tu teléfono para mayor seguridad'
-                    }
-                  </p>
+                  </FormField>
                 </div>
-                {user?.phoneVerified ? (
-                  <div className="flex items-center text-green-600">
-                    <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className="text-sm font-medium">Verificado</span>
-                  </div>
-                ) : (
+
+                <div className="flex justify-end space-x-3">
                   <button
-                    onClick={() => setShowPhoneVerification(true)}
-                    className="text-primary-600 hover:text-primary-500 font-medium text-sm"
+                    type="button"
+                    onClick={() => {
+                      setShowPasswordForm(false);
+                      passwordForm.reset();
+                    }}
+                    className={secondaryButtonClasses}
                   >
-                    Verificar
+                    Cancelar
                   </button>
-                )}
-              </div>
-
-              {!user?.phoneVerified && showPhoneVerification && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <PhoneVerification onVerified={handlePhoneVerified} />
+                  <button
+                    type="button"
+                    onClick={passwordForm.handleSubmit(updatePassword)}
+                    disabled={isLoading}
+                    className={buttonClasses}
+                  >
+                    {isLoading ? 'Actualizando...' : 'Actualizar'}
+                  </button>
                 </div>
-              )}
-            </div>
-
-            {/* Account Deletion */}
-            <div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Eliminar Cuenta
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Esta acción no se puede deshacer
-                  </p>
-                </div>
-                <button
-                  onClick={handleDeleteAccount}
-                  disabled={isLoading}
-                  className="text-red-600 hover:text-red-500 font-medium text-sm disabled:opacity-50"
-                >
-                  Eliminar
-                </button>
               </div>
+            )}
+          </div>
+
+          <div className="flex justify-end border-t border-gray-200 dark:border-gray-600 pt-6">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={`${buttonClasses} px-6`}
+            >
+              {isLoading ? 'Guardando...' : 'Guardar Información'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm border border-red-200 dark:bg-gray-800 dark:border-red-700">
+        <div className="px-6 py-4 border-b border-red-200 dark:border-red-700">
+          <h3 className="text-lg font-semibold text-red-900 dark:text-red-400">
+            Zona de Peligro
+          </h3>
+        </div>
+        <div className="p-6">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h4 className="text-md font-medium text-gray-900 dark:text-white mb-2">
+                Eliminar Cuenta
+              </h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Esta acción eliminará permanentemente tu cuenta y todos los datos asociados
+              </p>
             </div>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={isLoading}
+              className="ml-6 text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Eliminar
+            </button>
           </div>
         </div>
       </div>

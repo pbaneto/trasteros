@@ -35,6 +35,12 @@ serve(async (req) => {
       }
     )
 
+    console.log('SUPABASE_URL', Deno.env.get('SUPABASE_URL'))
+    console.log('SUPABASE_ANON_KEY', Deno.env.get('SUPABASE_ANON_KEY'))
+    console.log('STRIPE_SECRET_KEY', Deno.env.get('STRIPE_SECRET_KEY'))
+    console.log('REACT_APP_SUPABASE_URL', Deno.env.get('REACT_APP_SUPABASE_URL'))
+    console.log('REACT_APP_SUPABASE_ANON_KEY', Deno.env.get('REACT_APP_SUPABASE_ANON_KEY'))
+
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
     
     if (userError || !user) {
