@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { ActiveUnitsTable } from '../components/dashboard/ActiveUnitsTable';
-import { UnitDetailsPanel } from '../components/storage/UnitDetailsPanel';
 import { ReservationWizard } from '../components/storage/ReservationWizard';
 import { UserProfile } from '../components/dashboard/UserProfile';
 import { AuthModal, AuthMode } from '../components/auth/AuthModal';
@@ -15,8 +14,6 @@ export const DashboardPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'trasteros' | 'perfil'>('trasteros');
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
-  const [showRenewalModal, setShowRenewalModal] = useState(false);
-  const [showDetailsPanel, setShowDetailsPanel] = useState(false);
   const [showReservationWizard, setShowReservationWizard] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<AuthMode>('login');
@@ -26,6 +23,7 @@ export const DashboardPage: React.FC = () => {
     const tab = searchParams.get('tab');
     const wizard = searchParams.get('wizard');
     const size = searchParams.get('size');
+    const step = searchParams.get('step');
     
     if (tab === 'perfil') {
       setActiveTab('perfil');
@@ -38,10 +36,21 @@ export const DashboardPage: React.FC = () => {
       if (size) {
         setInitialWizardSize(parseInt(size));
       }
+      
+      // Store step and canceled state for wizard
+      if (step) {
+        sessionStorage.setItem('wizardStep', step);
+      }
+      if (searchParams.get('canceled') === 'true') {
+        sessionStorage.setItem('wizardCanceled', 'true');
+      }
+      
       // Remove wizard params from URL to clean it up
       const newSearchParams = new URLSearchParams(searchParams);
       newSearchParams.delete('wizard');
       newSearchParams.delete('size');
+      newSearchParams.delete('step');
+      newSearchParams.delete('canceled');
       setSearchParams(newSearchParams);
     }
   }, [searchParams, setSearchParams]);
@@ -54,29 +63,12 @@ export const DashboardPage: React.FC = () => {
       setSearchParams({});
     }
   };
-    
-  const handleViewAccess = (rental: Rental) => {
-    setSelectedRental(rental);
-    setShowDetailsPanel(true);
-  };
-
-  const handleRenewRental = (rental: Rental) => {
-    setSelectedRental(rental);
-    setShowRenewalModal(true);
-  };
 
   const handleCancelSubscription = (rental: Rental) => {
     // TODO: Implement subscription cancellation logic
     console.log('Cancel subscription for rental:', rental.id);
     // You can add a confirmation modal here
   };
-
-
-  const handleRenewalComplete = () => {
-    // Refresh the units table - in a real app you might use a state management solution
-    window.location.reload();
-  };
-
 
   const openAuthModal = (mode: AuthMode) => {
     setAuthModalMode(mode);
@@ -158,7 +150,6 @@ export const DashboardPage: React.FC = () => {
               <div className="space-y-8">
                 {/* Units Table */}
                 <ActiveUnitsTable
-                  onGenerateQR={handleViewAccess}
                   onCancelSubscription={handleCancelSubscription}
                 />
               </div>
@@ -178,42 +169,6 @@ export const DashboardPage: React.FC = () => {
           <UserProfile initialTab={searchParams.get('profileTab') as any || 'profile'} />
         )}
       </div>
-
-      {/* Details Panel - This could also be a modal */}
-      {showDetailsPanel && selectedRental && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 dark:bg-gray-900/80" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-          <div className="flex items-center justify-center min-h-screen p-4">
-            <div className="relative bg-white rounded-lg shadow-lg max-w-4xl w-full max-h-screen overflow-y-auto dark:bg-gray-800">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Detalles del Trastero
-                  </h2>
-                  <button
-                    onClick={() => {
-                      setShowDetailsPanel(false);
-                      setSelectedRental(null);
-                    }}
-                    className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
-                    type="button"
-                  >
-                    <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
-                    </svg>
-                    <span className="sr-only">Cerrar modal</span>
-                  </button>
-                </div>
-                
-                <UnitDetailsPanel
-                  rental={selectedRental}
-                  onRenew={() => setShowRenewalModal(true)}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Auth Modal */}
       <AuthModal 
         isOpen={isAuthModalOpen} 

@@ -40,7 +40,6 @@ export interface Payment {
   id: string;
   rentalId: string;
   stripePaymentIntentId: string;
-  amount: number;
   status: 'pending' | 'succeeded' | 'failed';
   paymentDate: string;
   paymentMethod: string;
@@ -50,6 +49,12 @@ export interface Payment {
   billingCycleEnd?: string;
   isSubscriptionActive?: boolean;
   nextBillingDate?: string;
+  // Payment details
+  monthsPaid: number;
+  unitPrice: number;
+  insuranceIncluded: boolean;
+  insurancePrice: number;
+  totalAmount: number;
   rental?: {
     id: string;
     unit?: {

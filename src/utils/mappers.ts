@@ -43,7 +43,6 @@ interface RawPayment {
   id: string;
   rental_id: string;
   stripe_payment_intent_id: string;
-  amount: number;
   status: 'pending' | 'succeeded' | 'failed';
   payment_date: string;
   payment_method: string;
@@ -53,6 +52,12 @@ interface RawPayment {
   billing_cycle_end?: string;
   is_subscription_active?: boolean;
   next_billing_date?: string;
+  // Payment details
+  months_paid: number;
+  unit_price: number;
+  insurance_included: boolean;
+  insurance_price: number;
+  total_amount: number;
   rental?: {
     id: string;
     unit?: {
@@ -116,7 +121,6 @@ export const transformPayment = (rawPayment: RawPayment): Payment => ({
   id: rawPayment.id,
   rentalId: rawPayment.rental_id,
   stripePaymentIntentId: rawPayment.stripe_payment_intent_id,
-  amount: rawPayment.amount,
   status: rawPayment.status,
   paymentDate: rawPayment.payment_date,
   paymentMethod: rawPayment.payment_method,
@@ -126,6 +130,12 @@ export const transformPayment = (rawPayment: RawPayment): Payment => ({
   billingCycleEnd: rawPayment.billing_cycle_end,
   isSubscriptionActive: rawPayment.is_subscription_active,
   nextBillingDate: rawPayment.next_billing_date,
+  // Payment details
+  monthsPaid: rawPayment.months_paid,
+  unitPrice: rawPayment.unit_price,
+  insuranceIncluded: rawPayment.insurance_included,
+  insurancePrice: rawPayment.insurance_price, 
+  totalAmount: rawPayment.total_amount,
   rental: rawPayment.rental ? {
     id: rawPayment.rental.id,
     unit: rawPayment.rental.unit ? {

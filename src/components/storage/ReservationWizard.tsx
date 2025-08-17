@@ -20,9 +20,30 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
   const [selectedSize, setSelectedSize] = useState<number | null>(initialSize || null);
   const [selectedInsurance, setSelectedInsurance] = useState<string>('none');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showCancelMessage, setShowCancelMessage] = useState(false);
 
   useEffect(() => {
-    if (initialSize && selectedSize === initialSize) {
+    // Check for stored wizard state from canceled checkout
+    const storedStep = sessionStorage.getItem('wizardStep');
+    const wasCanceled = sessionStorage.getItem('wizardCanceled') === 'true';
+    const storedSize = sessionStorage.getItem('wizardSelectedSize');
+    const storedInsurance = sessionStorage.getItem('wizardSelectedInsurance');
+    
+    if (wasCanceled && storedStep === 'summary') {
+      // Restore previous selections
+      if (storedSize) {
+        setSelectedSize(parseInt(storedSize));
+      }
+      if (storedInsurance) {
+        setSelectedInsurance(storedInsurance);
+      }
+      setCurrentStep('summary');
+      setShowCancelMessage(true);
+      
+      // Clean up session storage
+      sessionStorage.removeItem('wizardStep');
+      sessionStorage.removeItem('wizardCanceled');
+    } else if (initialSize && selectedSize === initialSize) {
       setCurrentStep('insurance');
     }
   }, [initialSize, selectedSize]);
@@ -52,8 +73,14 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
 
   const selectedInsuranceOption = INSURANCE_OPTIONS.find(option => option.id === selectedInsurance);
   const unitPrice = selectedSize ? getPriceBySize(selectedSize) : STORAGE_UNIT_SIZES.SMALL.price;
-  const basePrice = unitPrice;
-  const totalPrice = basePrice + (selectedInsuranceOption?.price || 0);
+  const insurancePrice = selectedInsuranceOption?.price || 0;
+  
+  const ivaBasePrice = unitPrice * 0.21;
+  const ivaInsurance = insurancePrice * 0.21;
+  
+  const basePriceWithIva = unitPrice + ivaBasePrice;
+  const insurancePriceWithIva = insurancePrice + ivaInsurance;
+  const totalPriceWithIva = basePriceWithIva + insurancePriceWithIva;
 
   const handleSizeSelect = (size: number) => {
     setSelectedSize(size);
@@ -85,14 +112,15 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
   const handleCheckout = async () => {
     if (!user || !selectedSize) return;
 
+    // Store current wizard state before checkout
+    sessionStorage.setItem('wizardSelectedSize', selectedSize.toString());
+    sessionStorage.setItem('wizardSelectedInsurance', selectedInsurance);
+
     setIsProcessing(true);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      console.log('Session state:', session);
-      console.log('User from context:', user);
-      
+
       if (!session) {
         throw new Error('Sesión no válida');
       }
@@ -110,18 +138,16 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
 
       const selectedUnit = availableUnits[0];
 
-      
-      // Explicitly pass authorization header
       const response = await supabase.functions.invoke('create-checkout-session', {
         body: {
           unitId: selectedUnit.id,
           months: 0,
           paymentType: 'subscription',
           insurance: selectedInsurance !== 'none',
-          insurancePrice: selectedInsuranceOption?.price || 0,
+          insurancePrice: insurancePriceWithIva,
           insuranceCoverage: selectedInsuranceOption?.coverage || 0,
-          unitPrice: unitPrice,
-          totalPrice,
+          unitPrice: basePriceWithIva,
+          totalPrice: totalPriceWithIva,
           unitSize: selectedSize,
         },
         headers: {
@@ -339,6 +365,22 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
     
     return (
       <div className="space-y-4 sm:space-y-6">
+        {showCancelMessage && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-800">
+                  Pago cancelado. Puedes continuar con tu reserva desde donde lo dejaste.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="text-center sm:hidden">
           <p className="text-gray-600">Revisa los detalles antes de proceder al pago</p>
         </div>
@@ -346,7 +388,8 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
           <h3 className="text-2xl font-bold text-gray-900 mb-3">
             Resumen de tu reserva
           </h3>
-          <p className="text-gray-600 text-lg">Revisa los detalles antes de proceder al pago</p>
+          <p className="text-gray-600 text-lg">Este primer pago incluye la subscripción mensual y el seguro de contenido. 
+            El resto de pagos solo incluirán la subscripción mensual con un importe de {formatPrice(basePriceWithIva)} (IVA incluido)</p>
         </div>
 
         <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg sm:rounded-xl p-4 sm:p-6 space-y-4 sm:space-y-6 mt-6 sm:mt-8">
@@ -356,18 +399,7 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
                 <h4 className="text-base sm:text-lg font-bold text-gray-900">Trastero {selectedSizeInfo?.label}</h4>
               </div>
               <div className="text-left sm:text-right">
-                <div className="text-lg sm:text-xl font-bold text-gray-900">{formatPrice(basePrice)}</div>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start py-3 sm:py-4 border-b border-gray-200">
-              <div className="mb-2 sm:mb-0">
-                <h4 className="text-base sm:text-lg font-bold text-gray-900">Pago mensual</h4>
-              </div>
-              <div className="text-left sm:text-right">
-                <div className="text-lg sm:text-xl font-bold text-gray-900">
-                  {formatPrice(unitPrice)}/mes
-                </div>
+                <div className="text-lg sm:text-xl font-bold text-gray-900">{formatPrice(basePriceWithIva)}/mes <p className="text-sm text-gray-600">(IVA incluido)</p></div>
               </div>
             </div>
             
@@ -375,9 +407,13 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start py-3 sm:py-4 border-b border-gray-200">
                 <div className="mb-2 sm:mb-0">
                   <h4 className="text-base sm:text-lg font-bold text-gray-900">Seguro de hasta {formatPrice(selectedInsuranceOption.coverage)}</h4>
+                  <p className="text-sm text-gray-600">
+                    Solo se aplica al primer pago.
+                  </p>
                 </div>
+
                 <div className="text-left sm:text-right">
-                  <div className="text-lg sm:text-xl font-bold text-gray-900">{formatPrice(selectedInsuranceOption.price)}</div>
+                  <div className="text-lg sm:text-xl font-bold text-gray-900">{formatPrice(insurancePriceWithIva)} <p className="text-sm text-gray-600">(IVA incluido)</p></div>
                 </div>
               </div>
             )}
@@ -385,8 +421,22 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
           
           <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-              <h4 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-0">Total a pagar</h4>
-              <div className="text-2xl sm:text-3xl font-bold text-primary-600">{formatPrice(totalPrice)}</div>
+              <h4 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-0">Total primera mensualidad</h4>
+              <div className="text-2xl sm:text-3xl font-bold text-primary-600">{formatPrice(totalPriceWithIva)}</div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start py-3 sm:py-4 border-b border-gray-200">
+            <div className="mb-2 sm:mb-0">
+              <div className="text-sm text-gray-600">
+                Desglose mensualidad: Precio {formatPrice(unitPrice)} + IVA {formatPrice(ivaBasePrice)}
+              </div>
+              <div className="text-sm text-gray-600">
+                Desglose seguro: Precio {formatPrice(insurancePrice)} + IVA {formatPrice(ivaInsurance)}
+              </div>
+              <div className="text-sm text-gray-600">
+                Total IVA: {formatPrice(ivaBasePrice + ivaInsurance)}
+              </div>
             </div>
           </div>
         </div>
@@ -407,7 +457,7 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
                 <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
-                <span className="text-sm sm:text-base">Proceder al pago - {formatPrice(totalPrice)}</span>
+                <span className="text-sm sm:text-base">Proceder al pago - {formatPrice(totalPriceWithIva)}</span>
               </div>
             )}
           </button>
@@ -440,32 +490,34 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
           <div className="w-full">
             {/* Mobile: Compact horizontal progress */}
             <div className="sm:hidden">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
+              <div className="flex flex-col items-center space-y-3 mb-3">
+                <div className="flex items-center justify-center space-x-2">
                   {steps.map((step, index) => {
                     const isActive = step === currentStep;
                     const isCompleted = index < currentStepIndex;
+                    const isClickable = index <= currentStepIndex;
                     
                     return (
                       <div key={step} className="flex items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                          isActive 
-                            ? 'bg-primary-600 text-white' 
-                            : isCompleted 
-                            ? 'bg-green-500 text-white'
-                            : 'bg-gray-300 text-gray-600'
-                        }`}>
+                        <button
+                          onClick={() => isClickable && goToStep(step)}
+                          disabled={!isClickable}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                            isActive 
+                              ? 'bg-primary-600 text-white' 
+                              : isCompleted 
+                              ? 'bg-green-500 text-white hover:bg-green-600'
+                              : 'bg-gray-300 text-gray-600'
+                          } ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                        >
                           {isCompleted ? '✓' : index + 1}
-                        </div>
+                        </button>
                         {index < steps.length - 1 && (
-                          <div className="w-4 h-0.5 bg-gray-300 mx-1" />
+                          <div className="w-6 h-0.5 bg-gray-300 mx-1" />
                         )}
                       </div>
                     );
                   })}
-                </div>
-                <div className="text-sm text-gray-600">
-                  {currentStepIndex + 1} de {steps.length}
                 </div>
               </div>
               <div className="text-center">
@@ -483,45 +535,47 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
             </div>
 
             {/* Desktop: Full progress indicator */}
-            <ol className="hidden sm:flex items-center w-full text-sm font-medium text-center text-gray-500 dark:text-gray-400 lg:text-base">
-              {steps.map((step, index) => {
-                const stepNames = {
-                  size: 'Tamaño',
-                  insurance: 'Seguro',
-                  summary: 'Resumen'
-                };
-                
-                const isActive = step === currentStep;
-                const isCompleted = index < currentStepIndex;
-                const isClickable = index <= currentStepIndex;
-                
-                return (
-                  <li key={step} className={`flex md:w-full items-center ${
-                    isActive ? 'text-primary-600 dark:text-primary-500' : 
-                    isCompleted ? 'text-green-600 dark:text-green-500' : ''
-                  } ${index < steps.length - 1 ? 'sm:after:content-[\'\'] after:w-full after:h-1 after:border-b after:border-gray-200 after:border-1 after:hidden sm:after:inline-block after:mx-6 xl:after:mx-10 dark:after:border-gray-700' : ''}`}>
-                    <button
-                      onClick={() => isClickable && goToStep(step)}
-                      disabled={!isClickable}
-                      className={`flex items-center ${isClickable ? 'cursor-pointer hover:text-primary-700' : 'cursor-not-allowed'}`}
-                    >
-                      {isCompleted ? (
-                        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
-                        </svg>
-                      ) : (
-                        <span className={`mr-2 text-sm font-bold ${
-                          isActive ? 'text-primary-600' : 'text-gray-500'
-                        }`}>
-                          {index + 1}
-                        </span>
-                      )}
-                      {stepNames[step]}
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
+            <div className="hidden sm:flex justify-center">
+              <ol className="flex items-center text-sm font-medium text-center text-gray-500 dark:text-gray-400 lg:text-base max-w-md">
+                {steps.map((step, index) => {
+                  const stepNames = {
+                    size: 'Tamaño',
+                    insurance: 'Seguro',
+                    summary: 'Resumen'
+                  };
+                  
+                  const isActive = step === currentStep;
+                  const isCompleted = index < currentStepIndex;
+                  const isClickable = index <= currentStepIndex;
+                  
+                  return (
+                    <li key={step} className={`flex items-center ${
+                      isActive ? 'text-primary-600 dark:text-primary-500' : 
+                      isCompleted ? 'text-green-600 dark:text-green-500' : ''
+                    } ${index < steps.length - 1 ? 'after:content-[\'\'] after:w-full after:h-1 after:border-b after:border-gray-200 after:border-1 after:inline-block after:mx-4 xl:after:mx-6 dark:after:border-gray-700' : ''}`}>
+                      <button
+                        onClick={() => isClickable && goToStep(step)}
+                        disabled={!isClickable}
+                        className={`flex items-center whitespace-nowrap ${isClickable ? 'cursor-pointer hover:text-primary-700' : 'cursor-not-allowed'}`}
+                      >
+                        {isCompleted ? (
+                          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+                          </svg>
+                        ) : (
+                          <span className={`mr-2 text-sm font-bold ${
+                            isActive ? 'text-primary-600' : 'text-gray-500'
+                          }`}>
+                            {index + 1}
+                          </span>
+                        )}
+                        {stepNames[step]}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
           </div>
         </div>
 

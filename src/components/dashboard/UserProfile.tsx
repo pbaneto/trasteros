@@ -37,7 +37,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [verificationStep, setVerificationStep] = useState<'none' | 'code'>('none');
-  const [showPasswordForm, setShowPasswordForm] = useState(initialTab === 'password');
 
 
   const profileForm = useForm<ProfileFormData>({
@@ -90,7 +89,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 
       toast.success('Contraseña actualizada correctamente');
       passwordForm.reset();
-      setShowPasswordForm(false);
     } catch (error: any) {
       toast.error(error.message || 'Error al actualizar la contraseña');
     } finally {
@@ -327,82 +325,61 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             )}
           </FormField>
 
-          <div className="border-t border-gray-200 dark:border-gray-600 pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-md font-medium text-gray-900 dark:text-white">
-                Contraseña
-              </h4>
-              {!showPasswordForm && (
-                <button
-                  type="button"
-                  onClick={() => setShowPasswordForm(true)}
-                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-sm"
-                >
-                  Cambiar
-                </button>
-              )}
-            </div>
 
-            {showPasswordForm && (
-              <div className="space-y-4">
-                <FormField 
-                  label="Contraseña Actual" 
-                  error={passwordForm.formState.errors.currentPassword?.message}
-                >
-                  <input
-                    {...passwordForm.register('currentPassword')}
-                    type="password"
-                    className={inputClasses}
-                    required
-                  />
-                </FormField>
+          <div className="flex justify-end border-t border-gray-200 dark:border-gray-600 pt-6">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={`${buttonClasses} px-6`}
+            >
+              {isLoading ? 'Guardando...' : 'Guardar'}
+            </button>
+          </div>
+        </form>
+      </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField 
-                    label="Nueva Contraseña" 
-                    error={passwordForm.formState.errors.newPassword?.message}
-                  >
-                    <input
-                      {...passwordForm.register('newPassword')}
-                      type="password"
-                      className={inputClasses}
-                    />
-                  </FormField>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Cambiar Contraseña
+          </h3>
+        </div>
+        
+        <form onSubmit={passwordForm.handleSubmit(updatePassword)} className="p-6 space-y-6">
+          <FormField 
+            label="Contraseña Actual" 
+            error={passwordForm.formState.errors.currentPassword?.message}
+          >
+            <input
+              {...passwordForm.register('currentPassword')}
+              type="password"
+              className={inputClasses}
+              required
+            />
+          </FormField>
 
-                  <FormField 
-                    label="Confirmar Nueva Contraseña" 
-                    error={passwordForm.formState.errors.confirmPassword?.message}
-                  >
-                    <input
-                      {...passwordForm.register('confirmPassword')}
-                      type="password"
-                      className={inputClasses}
-                    />
-                  </FormField>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField 
+              label="Nueva Contraseña" 
+              error={passwordForm.formState.errors.newPassword?.message}
+            >
+              <input
+                {...passwordForm.register('newPassword')}
+                type="password"
+                className={inputClasses}
+              />
+            </FormField>
 
-                <div className="flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowPasswordForm(false);
-                      passwordForm.reset();
-                    }}
-                    className={secondaryButtonClasses}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={passwordForm.handleSubmit(updatePassword)}
-                    disabled={isLoading}
-                    className={buttonClasses}
-                  >
-                    {isLoading ? 'Actualizando...' : 'Actualizar'}
-                  </button>
-                </div>
-              </div>
-            )}
+            <FormField 
+              label="Confirmar Nueva Contraseña" 
+              error={passwordForm.formState.errors.confirmPassword?.message}
+            >
+              <input
+                {...passwordForm.register('confirmPassword')}
+                type="password"
+                className={inputClasses}
+              />
+            </FormField>
           </div>
 
           <div className="flex justify-end border-t border-gray-200 dark:border-gray-600 pt-6">
@@ -411,7 +388,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               disabled={isLoading}
               className={`${buttonClasses} px-6`}
             >
-              {isLoading ? 'Guardando...' : 'Guardar Información'}
+              {isLoading ? 'Actualizando...' : 'Actualizar Contraseña'}
             </button>
           </div>
         </form>

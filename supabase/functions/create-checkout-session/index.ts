@@ -35,12 +35,6 @@ serve(async (req) => {
       }
     )
 
-    console.log('SUPABASE_URL', Deno.env.get('SUPABASE_URL'))
-    console.log('SUPABASE_ANON_KEY', Deno.env.get('SUPABASE_ANON_KEY'))
-    console.log('STRIPE_SECRET_KEY', Deno.env.get('STRIPE_SECRET_KEY'))
-    console.log('REACT_APP_SUPABASE_URL', Deno.env.get('REACT_APP_SUPABASE_URL'))
-    console.log('REACT_APP_SUPABASE_ANON_KEY', Deno.env.get('REACT_APP_SUPABASE_ANON_KEY'))
-
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
     
     if (userError || !user) {
@@ -75,7 +69,6 @@ serve(async (req) => {
     const lineItems: any[] = []
     
     if (paymentType === 'subscription') {
-      // Para suscripciones, crear precios recurrentes
       lineItems.push({
         price_data: {
           currency: 'eur',
@@ -110,46 +103,15 @@ serve(async (req) => {
           quantity: 1,
         })
       }
-    } else {
-      // Para pagos únicos, calcular el precio total por los meses seleccionados
-      lineItems.push({
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: `Unidad de almacenamiento ${unitSize}m²`,
-            description: `Alquiler de trastero ${unitSize}m² - ${months} ${months === 1 ? 'mes' : 'meses'}`,
-          },
-          unit_amount: Math.round(unitPrice * months * 100), // Precio por todos los meses
-        },
-        quantity: 1,
-      })
+    } 
 
-      // Agregar seguro si se seleccionó (pago único)
-      if (insurance && insurancePrice > 0) {
-        const formatPrice = (amount: number) => `€${amount.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-        
-        lineItems.push({
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: 'Seguro de contenido',
-              description: `Cobertura hasta ${formatPrice(insuranceCoverage || 0)} contra daños, robos e incendios`,
-            },
-            unit_amount: Math.round(insurancePrice * 100),
-          },
-          quantity: 1,
-        })
-      }
-    }
-
-    // Crear sesión de checkout
     const sessionConfig: any = {
       customer_email: user.email,
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: paymentType === 'subscription' ? 'subscription' : 'payment',
       success_url: `${req.headers.get('origin')}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin')}/checkout?canceled=true`,
+      cancel_url: `${req.headers.get('origin')}/dashboard?wizard=true&step=summary&canceled=true`,
       metadata: {
         userId: user.id,
         unitId: unitId.toString(),
@@ -157,7 +119,10 @@ serve(async (req) => {
         paymentType: paymentType,
         insurance: insurance.toString(),
         insurancePrice: (insurancePrice || 0).toString(),
+        insuranceCoverage: insuranceCoverage.toString(),
         unitSize: unitSize.toString(),
+        unitPrice: (unitPrice || 0).toString(),
+        totalPrice: totalPrice.toString(),
       },
     }
 

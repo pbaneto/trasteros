@@ -9,17 +9,16 @@ import { toast } from 'react-toastify';
 import { transformRentals, transformPayments } from '../../utils/mappers';
 
 interface ActiveUnitsTableProps {
-  onGenerateQR?: (rental: Rental) => void;
   onCancelSubscription?: (rental: Rental) => void;
 }
 
 export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
-  onGenerateQR,
   onCancelSubscription,
 }) => {
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedRentals, setExpandedRentals] = useState<Set<string>>(new Set());
+  const [showAccessCodes, setShowAccessCodes] = useState<Set<string>>(new Set());
   const [rentalPayments, setRentalPayments] = useState<Record<string, Payment[]>>({});
   const [loadingPayments, setLoadingPayments] = useState<Set<string>>(new Set());
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -112,6 +111,16 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
       fetchPaymentsForRental(rentalId);
     }
     setExpandedRentals(newExpanded);
+  };
+
+  const toggleAccessCode = (rentalId: string) => {
+    const newShowAccessCodes = new Set(showAccessCodes);
+    if (newShowAccessCodes.has(rentalId)) {
+      newShowAccessCodes.delete(rentalId);
+    } else {
+      newShowAccessCodes.add(rentalId);
+    }
+    setShowAccessCodes(newShowAccessCodes);
   };
 
   const handleCancelClick = (rental: Rental) => {
@@ -218,31 +227,6 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
     return expiry <= thirtyDaysFromNow;
   };
 
-  const getPaymentStatusColor = (status: string) => {
-    switch (status) {
-      case 'succeeded':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'failed':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPaymentStatusText = (status: string) => {
-    switch (status) {
-      case 'succeeded':
-        return 'Pagado';
-      case 'pending':
-        return 'Pendiente';
-      case 'failed':
-        return 'Fallido';
-      default:
-        return status;
-    }
-  };
 
   const getPaymentMethodIcon = (method: string) => {
     switch (method) {
@@ -331,7 +315,7 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
       </div>
 
       {/* Professional Cards Grid - Wider on Desktop */}
-      <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-1">
         {rentals.map((rental) => (
           <div key={rental.id} className="w-full bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 hover:shadow-lg transition-shadow duration-300">
             {/* Card Header with Unit Icon and Status */}
@@ -378,7 +362,7 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
               )}
 
               {/* Two-Column Layout for Wider Cards */}
-              <div className="grid lg:grid-cols-2 gap-6">
+              <div className="grid 2xl:grid-cols-2 gap-6">
                 {/* Left Column - Unit Details */}
                 <div className="space-y-4">
                   <h6 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide">Detalles del Trastero</h6>
@@ -405,9 +389,9 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
                 <div className="space-y-4">
                   <h6 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide">Acciones</h6>
                   <div className="space-y-3">
-                    {shouldShowVerCodigo(rental) && onGenerateQR && (
+                    {shouldShowVerCodigo(rental) && (
                       <button
-                        onClick={() => onGenerateQR(rental)}
+                        onClick={() => toggleAccessCode(rental.id)}
                         className="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-center text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-900 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-800 dark:focus:ring-blue-800"
                       >
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -442,6 +426,30 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
                 </div>
               </div>
 
+              {/* Access Code Display - Full Width */}
+              {showAccessCodes.has(rental.id) && (
+                <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <h6 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wide">Código de Acceso</h6>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 dark:bg-blue-900/20 dark:border-blue-800">
+                    <div className="text-center">
+                      <svg className="mx-auto h-12 w-12 text-blue-600 dark:text-blue-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
+                      </svg>
+                      <div className="space-y-3">
+                        <p className="text-sm text-blue-800 dark:text-blue-300 font-medium">
+                          Usa este código para acceder al trastero {rental.unit?.unitNumber}
+                        </p>
+                        <div className="bg-white border border-blue-300 rounded-lg p-4 dark:bg-gray-800 dark:border-blue-600">
+                          <span className="text-2xl font-mono font-bold text-gray-900 dark:text-white tracking-wider">
+                            {rental.ttlockCode || '123456'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Expandable Payment History - Full Width */}
               {expandedRentals.has(rental.id) && (
                 <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
@@ -456,16 +464,24 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
                     <div className="space-y-3 max-h-64 overflow-y-auto">
                       {rentalPayments[rental.id]?.length > 0 ? (
                         rentalPayments[rental.id].map((payment) => (
-                          <div key={payment.id} className="p-4 bg-gray-50 border border-gray-200 rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                          <div 
+                            key={payment.id} 
+                            className={`p-4 border rounded-lg ${
+                              payment.status === 'succeeded' 
+                                ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
+                                : 'bg-gray-50 border-gray-200 dark:bg-gray-700 dark:border-gray-600'
+                            }`}
+                          >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-4">
-                                <span className="text-gray-400 dark:text-gray-500">
+                                <span className={`${
+                                  payment.status === 'succeeded' 
+                                    ? 'text-green-600 dark:text-green-400' 
+                                    : 'text-gray-400 dark:text-gray-500'
+                                }`}>
                                   {getPaymentMethodIcon(payment.paymentMethod)}
                                 </span>
                                 <div>
-                                  <div className="text-base font-semibold text-gray-900 dark:text-white">
-                                    {formatPrice(payment.amount)}
-                                  </div>
                                   <div className="text-sm text-gray-500 dark:text-gray-400">
                                     {payment.paymentDate 
                                       ? format(new Date(payment.paymentDate), 'dd MMM yyyy HH:mm', { locale: es })
@@ -477,14 +493,34 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
                                     {payment.paymentMethod === 'google_pay' && 'Google Pay'}
                                     {payment.paymentMethod === 'paypal' && 'PayPal'}
                                     {!['card', 'google_pay', 'paypal'].includes(payment.paymentMethod) && payment.paymentMethod}
-                                    {payment.paymentType === 'subscription' && ' • Suscripción'}
                                     {payment.paymentType === 'single' && ' • Pago único'}
                                   </div>
                                 </div>
                               </div>
-                              <span className={`inline-flex items-center px-3 py-1 text-sm font-medium rounded-full ${getPaymentStatusColor(payment.status)}`}>
-                                {getPaymentStatusText(payment.status)}
-                              </span>
+                              <div className="text-right">
+                                <div className="space-y-1">
+                                  <div className="flex justify-between items-center min-w-[120px]">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">Trastero:</span>
+                                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                      {formatPrice(payment.unitPrice)}
+                                    </span>
+                                  </div>
+                                  {payment.insuranceIncluded && payment.insurancePrice > 0 && (
+                                    <div className="flex justify-between items-center min-w-[120px]">
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">Seguro:</span>
+                                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                        {formatPrice(payment.insurancePrice)}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between items-center min-w-[120px] pt-1 border-t border-gray-200 dark:border-gray-600">
+                                    <span className="text-sm font-semibold text-gray-900 dark:text-white">Total:</span>
+                                    <span className="text-base font-bold text-gray-900 dark:text-white">
+                                      {formatPrice(payment.totalAmount)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         ))

@@ -13,8 +13,6 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Webhook received')
-    
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
       httpClient: Stripe.createFetchHttpClient(),
@@ -36,8 +34,6 @@ serve(async (req) => {
     const body = await req.text()
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
 
-    console.log('Verifying webhook signature')
-    
     let event: Stripe.Event
 
     try {
@@ -62,8 +58,9 @@ serve(async (req) => {
         if (!session.metadata) {
           throw new Error('No metadata in session')
         }
+        console.log('Session metadata:', session.metadata)
 
-        const { userId, unitId, months, paymentType, insurance, insurancePrice } = session.metadata
+        const { userId, unitId, months, paymentType, insurance, insurancePrice, insuranceCoverage, unitSize, unitPrice, totalPrice } = session.metadata
         
         // Validate required metadata (test events may not have proper metadata)
         if (!userId || !unitId) {
@@ -107,13 +104,13 @@ serve(async (req) => {
             unit_id: unitId,
             start_date: startDate.toISOString().split('T')[0],
             end_date: endDate.toISOString().split('T')[0],
-            price: 45.00,
+            price: parseFloat(unitPrice || '0'),
             insurance_amount: insurance === 'true' ? parseFloat(insurancePrice || '0') : 0,
             status: 'active',
             ttlock_code: accessCode,
             stripe_payment_intent_id: null, // Subscriptions don't have payment intent at checkout
             months_paid: 1,
-            payment_type: 'subscription',
+            payment_type: currentPaymentType,
             subscription_status: 'active',
             next_payment_date: nextPaymentDate.toISOString().split('T')[0],
             stripe_subscription_id: subscriptionId,
@@ -135,13 +132,12 @@ serve(async (req) => {
 
           console.log(`Subscription rental ${rental.id} created in active status`)
 
-          // Create initial payment record for subscription
+          // Create initial payment record for subscription with detailed payment info
           const { error: paymentError } = await supabaseClient
             .from('payments')
             .insert([{
               rental_id: rental.id,
               stripe_payment_intent_id: null, // No payment intent for subscription checkout
-              amount: (session.amount_total || 0) / 100,
               status: 'succeeded',
               payment_date: new Date().toISOString(),
               payment_method: 'card',
@@ -151,6 +147,12 @@ serve(async (req) => {
               billing_cycle_end: rentalData.end_date,
               is_subscription_active: true,
               next_billing_date: nextPaymentDate.toISOString().split('T')[0],
+              // Payment details
+              months_paid: 1, // Subscription pays for 1 month at a time
+              unit_price: parseFloat(unitPrice || '0'),
+              insurance_included: insurance === 'true',
+              insurance_price: insurance === 'true' ? parseFloat(insurancePrice || '0') : 0,
+              total_amount: parseFloat(totalPrice || '0'),
             }])
           
           if (paymentError) {
@@ -170,97 +172,6 @@ serve(async (req) => {
           }
 
           console.log(`Successfully processed subscription checkout for user ${userId}, unit ${unitId}`)
-          
-        } else {
-          // Handle single payments
-          console.log('Processing single payment checkout')
-          
-          if (!session.payment_intent) {
-            console.error('Single payment checkout session missing payment intent:', {
-              sessionId: session.id,
-              mode: session.mode,
-              paymentStatus: session.payment_status
-            })
-            throw new Error('Payment intent missing from single payment checkout session')
-          }
-          
-          const paymentIntentId = typeof session.payment_intent === 'string'
-            ? session.payment_intent
-            : session.payment_intent.id
-          
-          // Generate 4-digit access code
-          const accessCode = Math.floor(1000 + Math.random() * 9000).toString()
-          console.log('Generated access code:', accessCode)
-          
-          const startDate = new Date()
-          const endDate = new Date()
-          const monthsPaid = parseInt(months) || 1
-          endDate.setMonth(endDate.getMonth() + monthsPaid)
-          
-          const rentalData = {
-            user_id: userId,
-            unit_id: unitId,
-            start_date: startDate.toISOString().split('T')[0],
-            end_date: endDate.toISOString().split('T')[0],
-            price: 45.00,
-            insurance_amount: insurance === 'true' ? parseFloat(insurancePrice || '0') : 0,
-            status: 'active', // Single payments are immediately active
-            ttlock_code: accessCode,
-            stripe_payment_intent_id: paymentIntentId,
-            months_paid: monthsPaid,
-            payment_type: 'single',
-            subscription_status: null,
-            next_payment_date: null,
-          }
-
-          // Create rental record
-          const { data: rental, error: rentalError } = await supabaseClient
-            .from('rentals')
-            .insert([rentalData])
-            .select()
-            .single()
-
-          if (rentalError) {
-            console.error('Error creating rental:', rentalError)
-            throw rentalError
-          }
-
-          console.log('Single payment rental created:', rental.id)
-
-          // Create payment record for single payment
-          const paymentData = {
-            rental_id: rental.id,
-            stripe_payment_intent_id: paymentIntentId,
-            amount: (session.amount_total || 0) / 100, // Convert from cents
-            status: 'succeeded',
-            payment_date: new Date().toISOString(),
-            payment_method: 'card',
-            payment_type: 'single',
-          }
-
-          const { error: paymentError } = await supabaseClient
-            .from('payments')
-            .insert([paymentData])
-
-          if (paymentError) {
-            console.error('Error creating payment record:', paymentError)
-            throw paymentError
-          }
-
-          console.log('Payment record created for single payment')
-          
-          // Update unit status to occupied for single payments
-          const { error: unitError } = await supabaseClient
-            .from('storage_units')
-            .update({ status: 'occupied' })
-            .eq('id', unitId)
-
-          if (unitError) {
-            console.error('Error updating unit status:', unitError)
-            throw unitError
-          }
-
-          console.log(`Successfully processed single payment for user ${userId}, unit ${unitId}`)
         }
         break
       }
@@ -274,13 +185,6 @@ serve(async (req) => {
 
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice
-        console.log('Invoice payment succeeded:', {
-          invoiceId: invoice.id,
-          subscriptionId: invoice.subscription,
-          customerId: invoice.customer,
-          amountPaid: invoice.amount_paid,
-          paymentIntentId: invoice.payment_intent
-        })
         
         if (invoice.subscription) {
           // Handle both string and object subscription references
@@ -324,13 +228,12 @@ serve(async (req) => {
               throw updateRentalError
             }
 
-            // Create a new payment record for the renewal
+            // Create a new payment record for the renewal with detailed payment info
             const { error: paymentError } = await supabaseClient
               .from('payments')
               .insert([{
                 rental_id: rental.id,
                 stripe_payment_intent_id: invoice.payment_intent as string,
-                amount: (invoice.amount_paid || 0) / 100,
                 status: 'succeeded',
                 payment_date: new Date().toISOString(),
                 payment_method: 'card',
@@ -340,6 +243,12 @@ serve(async (req) => {
                 billing_cycle_end: newEndDate.toISOString().split('T')[0],
                 is_subscription_active: true,
                 next_billing_date: nextPaymentDate.toISOString().split('T')[0],
+                // Payment details for renewal (1 month)
+                months_paid: 1,
+                unit_price: rental.price,
+                insurance_included: rental.insurance_amount > 0,
+                insurance_price: 0, // Insurance is only charged on first payment
+                total_amount: (invoice.amount_paid || 0) / 100,
               }])
 
             if (paymentError) {

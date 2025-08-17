@@ -1,5 +1,5 @@
 -- Complete Trasteros storage rental app schema
--- Includes subscription support, rental metadata, and pending status
+-- Includes subscription support, rental metadata, pending status, and detailed payment information
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -54,12 +54,11 @@ CREATE TABLE IF NOT EXISTS rentals (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Create payments table with subscription support
+-- Create payments table with subscription support and detailed payment information
 CREATE TABLE IF NOT EXISTS payments (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     rental_id UUID REFERENCES rentals(id) ON DELETE CASCADE,
     stripe_payment_intent_id VARCHAR(255),
-    amount DECIMAL(10,2) NOT NULL,
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'succeeded', 'failed')),
     payment_date TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
     payment_method VARCHAR(50) NOT NULL,
@@ -69,7 +68,13 @@ CREATE TABLE IF NOT EXISTS payments (
     billing_cycle_start DATE,
     billing_cycle_end DATE,
     is_subscription_active BOOLEAN DEFAULT FALSE,
-    next_billing_date DATE
+    next_billing_date DATE,
+    -- Payment detail columns
+    months_paid INTEGER DEFAULT 1 CHECK (months_paid >= 1),
+    unit_price DECIMAL(10,2),
+    insurance_included BOOLEAN DEFAULT FALSE,
+    insurance_price DECIMAL(10,2) DEFAULT 0.00,
+    total_amount DECIMAL(10,2)
 );
 
 
@@ -91,6 +96,10 @@ CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
 CREATE INDEX IF NOT EXISTS idx_payments_payment_type ON payments(payment_type);
 CREATE INDEX IF NOT EXISTS idx_payments_subscription_id ON payments(subscription_id);
 CREATE INDEX IF NOT EXISTS idx_payments_next_billing_date ON payments(next_billing_date);
+-- Payment detail indexes
+CREATE INDEX IF NOT EXISTS idx_payments_months_paid ON payments(months_paid);
+CREATE INDEX IF NOT EXISTS idx_payments_insurance_included ON payments(insurance_included);
+CREATE INDEX IF NOT EXISTS idx_payments_total_amount ON payments(total_amount);
 
 -- Set up Row Level Security (RLS)
 ALTER TABLE users_profile ENABLE ROW LEVEL SECURITY;
@@ -388,6 +397,11 @@ COMMENT ON COLUMN payments.billing_cycle_start IS 'Start date of current billing
 COMMENT ON COLUMN payments.billing_cycle_end IS 'End date of current billing cycle for subscriptions';
 COMMENT ON COLUMN payments.is_subscription_active IS 'Whether the subscription is currently active';
 COMMENT ON COLUMN payments.next_billing_date IS 'Next scheduled billing date for subscriptions';
+COMMENT ON COLUMN payments.months_paid IS 'Number of months covered by this payment';
+COMMENT ON COLUMN payments.unit_price IS 'Monthly unit rental price at time of payment';
+COMMENT ON COLUMN payments.insurance_included IS 'Whether insurance was included in this payment';
+COMMENT ON COLUMN payments.insurance_price IS 'Insurance cost included in this payment (one-time fee)';
+COMMENT ON COLUMN payments.total_amount IS 'Total amount paid including taxes';
 COMMENT ON COLUMN rentals.stripe_subscription_id IS 'Stripe subscription ID for subscription-based rentals';
 COMMENT ON COLUMN rentals.checkout_session_id IS 'Stripe checkout session ID for this rental';
 COMMENT ON COLUMN rentals.subscription_metadata IS 'Additional subscription metadata from Stripe checkout session';
