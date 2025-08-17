@@ -8,6 +8,7 @@ interface RawUser {
   last_name: string;
   phone?: string;
   phone_verified: boolean;
+  active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -71,6 +72,7 @@ export const transformUser = (rawUser: RawUser): User => ({
   lastName: rawUser.last_name,
   phone: rawUser.phone,
   phoneVerified: rawUser.phone_verified,
+  active: rawUser.active,
   createdAt: rawUser.created_at,
   updatedAt: rawUser.updated_at,
 });

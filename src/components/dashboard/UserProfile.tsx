@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../utils/supabase';
 import { toast } from 'react-toastify';
@@ -33,6 +34,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   initialTab = 'profile' 
 }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [verificationStep, setVerificationStep] = useState<'none' | 'code'>('none');
   const [showPasswordForm, setShowPasswordForm] = useState(initialTab === 'password');
@@ -148,37 +150,37 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   };
 
   const handleDeleteAccount = async () => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.')) {
+    if (!window.confirm('¿Estás seguro de que quieres desactivar tu cuenta? Podrás reactivarla contactando con soporte.')) {
       return;
     }
 
     try {
-      // Check if user has active rentals
-      const { data: activeRentals } = await supabase
-        .from('rentals')
-        .select('id')
-        .eq('user_id', user?.id)
-        .eq('status', 'active');
-
-      if (activeRentals && activeRentals.length > 0) {
-        toast.error('No puedes eliminar tu cuenta mientras tengas trasteros activos');
-        return;
-      }
-
       setIsLoading(true);
 
-      // Delete user profile
-      const { error: profileError } = await supabase
-        .from('users_profile')
-        .delete()
-        .eq('id', user?.id);
+      // Use the database function to deactivate account (bypasses RLS)
+      const { error: deactivationError } = await supabase.rpc('deactivate_user_account');
 
-      if (profileError) throw profileError;
+      if (deactivationError) throw deactivationError;
 
-      toast.success('Solicitud de eliminación enviada. Tu cuenta será eliminada en 24 horas.');
-      
+      // Sign out the user after deactivation
+      await supabase.auth.signOut();
+
+      toast.success('Tu cuenta ha sido desactivada correctamente');
+
+      // Refresh the page to see the changes
+      window.location.reload();
     } catch (error: any) {
-      toast.error(error.message || 'Error al eliminar la cuenta');
+      let errorMessage = 'Error al desactivar la cuenta';
+      
+      if (error.message?.includes('active rentals')) {
+        errorMessage = 'No puedes desactivar tu cuenta mientras tengas trasteros activos';
+      } else if (error.message?.includes('already inactive')) {
+        errorMessage = 'La cuenta ya está desactivada';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -415,20 +417,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         </form>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-red-200 dark:bg-gray-800 dark:border-red-700">
-        <div className="px-6 py-4 border-b border-red-200 dark:border-red-700">
-          <h3 className="text-lg font-semibold text-red-900 dark:text-red-400">
-            Zona de Peligro
-          </h3>
-        </div>
+      {/* <div className="bg-white rounded-lg shadow-sm border border-red-200 dark:bg-gray-800 dark:border-red-700">
         <div className="p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h4 className="text-md font-medium text-gray-900 dark:text-white mb-2">
-                Eliminar Cuenta
+                Desactivar Cuenta
               </h4>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Esta acción eliminará permanentemente tu cuenta y todos los datos asociados
+                Esta acción desactivará tu cuenta. Podrás reactivarla contactando con soporte
               </p>
             </div>
             <button
@@ -436,11 +433,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               disabled={isLoading}
               className="ml-6 text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Eliminar
+              Desactivar
             </button>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

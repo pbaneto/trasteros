@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS users_profile (
     phone_verified BOOLEAN DEFAULT FALSE,
     verification_code VARCHAR(6),
     verification_code_expires_at TIMESTAMP WITH TIME ZONE,
+    active BOOLEAN DEFAULT true NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
@@ -74,6 +75,7 @@ CREATE TABLE IF NOT EXISTS payments (
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_users_profile_email ON users_profile(email);
+CREATE INDEX IF NOT EXISTS idx_users_profile_active ON users_profile(active);
 CREATE INDEX IF NOT EXISTS idx_storage_units_status ON storage_units(status);
 CREATE INDEX IF NOT EXISTS idx_storage_units_size ON storage_units(size_m2);
 CREATE INDEX IF NOT EXISTS idx_rentals_user_id ON rentals(user_id);
@@ -98,15 +100,17 @@ ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
 
--- Users can only access their own profile
+-- Users can view their own profile only if active
 CREATE POLICY "Users can view own profile" ON users_profile
-    FOR SELECT USING (auth.uid() = id);
+    FOR SELECT USING (auth.uid() = id AND active = true);
 
-CREATE POLICY "Users can update own profile" ON users_profile
-    FOR UPDATE USING (auth.uid() = id);
+-- Users can update their profile information when they are active
+CREATE POLICY "Users can update profile" ON users_profile
+    FOR UPDATE USING (auth.uid() = id AND active = true);
 
+-- Users can insert their own profile, and allow system/trigger inserts
 CREATE POLICY "Users can insert own profile" ON users_profile
-    FOR INSERT WITH CHECK (auth.uid() = id);
+    FOR INSERT WITH CHECK (auth.uid() = id OR auth.uid() IS NULL);
 
 -- Storage units are publicly readable but only admin writable
 CREATE POLICY "Anyone can view storage units" ON storage_units
@@ -122,30 +126,43 @@ CREATE POLICY "Only admins can modify storage units" ON storage_units
         )
     );
 
--- Rentals are only accessible to the rental owner
+-- Rentals are only accessible to the rental owner (and only if user is active)
 CREATE POLICY "Users and service role can view rentals" ON rentals
     FOR SELECT USING (
         current_setting('role') = 'service_role'
-        OR auth.uid() = user_id
+        OR (auth.uid() = user_id AND EXISTS (
+            SELECT 1 FROM users_profile 
+            WHERE id = auth.uid() AND active = true
+        ))
     );
 
 CREATE POLICY "Users and service role can insert rentals" ON rentals
     FOR INSERT WITH CHECK (
         current_setting('role') = 'service_role' 
-        OR auth.uid() = user_id
+        OR (auth.uid() = user_id AND EXISTS (
+            SELECT 1 FROM users_profile 
+            WHERE id = auth.uid() AND active = true
+        ))
     );
 
 CREATE POLICY "Users can update own rentals" ON rentals
-    FOR UPDATE USING (auth.uid() = user_id);
+    FOR UPDATE USING (
+        auth.uid() = user_id AND EXISTS (
+            SELECT 1 FROM users_profile 
+            WHERE id = auth.uid() AND active = true
+        )
+    );
 
--- Payments are only accessible to the rental owner
+-- Payments are only accessible to the rental owner (and only if user is active)
 CREATE POLICY "Users and service role can view payments" ON payments
     FOR SELECT USING (
         current_setting('role') = 'service_role'
         OR EXISTS (
             SELECT 1 FROM rentals 
+            JOIN users_profile ON users_profile.id = rentals.user_id
             WHERE rentals.id = payments.rental_id 
             AND rentals.user_id = auth.uid()
+            AND users_profile.active = true
         )
     );
 
@@ -154,8 +171,10 @@ CREATE POLICY "System and service role can insert payments" ON payments
         current_setting('role') = 'service_role'
         OR EXISTS (
             SELECT 1 FROM rentals 
+            JOIN users_profile ON users_profile.id = rentals.user_id
             WHERE rentals.id = payments.rental_id 
             AND rentals.user_id = auth.uid()
+            AND users_profile.active = true
         )
     );
 
@@ -221,14 +240,16 @@ BEGIN
         first_name, 
         last_name, 
         phone, 
-        phone_verified
+        phone_verified,
+        active
     ) VALUES (
         NEW.id, 
         NEW.email,
         first_name_value,
         last_name_value,
         NEW.raw_user_meta_data->>'phone',
-        false
+        false,
+        true
     ) ON CONFLICT (id) DO NOTHING;
     
     RAISE LOG 'Profile created for user % with names: "%" "%"', NEW.id, first_name_value, last_name_value;
@@ -314,6 +335,45 @@ CREATE TRIGGER trigger_update_rental_end_date
     BEFORE INSERT OR UPDATE ON rentals
     FOR EACH ROW EXECUTE FUNCTION update_rental_end_date();
 
+-- Function to deactivate user account (bypasses RLS)
+CREATE OR REPLACE FUNCTION public.deactivate_user_account()
+RETURNS void AS $$
+DECLARE
+    current_user_id UUID;
+BEGIN
+    -- Get the current authenticated user ID
+    current_user_id := auth.uid();
+    
+    -- Check if user exists and is active
+    IF NOT EXISTS (
+        SELECT 1 FROM users_profile 
+        WHERE id = current_user_id AND active = true
+    ) THEN
+        RAISE EXCEPTION 'User not found or already inactive';
+    END IF;
+    
+    -- Check if user has active rentals
+    IF EXISTS (
+        SELECT 1 FROM rentals 
+        WHERE user_id = current_user_id 
+        AND status = 'active'
+    ) THEN
+        RAISE EXCEPTION 'Cannot deactivate account with active rentals';
+    END IF;
+    
+    -- Deactivate the user account
+    UPDATE users_profile 
+    SET active = false, updated_at = NOW()
+    WHERE id = current_user_id;
+    
+    -- Log the deactivation
+    RAISE LOG 'User account deactivated: %', current_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION public.deactivate_user_account() TO authenticated;
+
 -- Add comments to clarify the schema
 COMMENT ON COLUMN storage_units.price IS 'Monthly rental price in euros';
 COMMENT ON COLUMN rentals.price IS 'Monthly rental price for this rental in euros';
@@ -331,3 +391,4 @@ COMMENT ON COLUMN payments.next_billing_date IS 'Next scheduled billing date for
 COMMENT ON COLUMN rentals.stripe_subscription_id IS 'Stripe subscription ID for subscription-based rentals';
 COMMENT ON COLUMN rentals.checkout_session_id IS 'Stripe checkout session ID for this rental';
 COMMENT ON COLUMN rentals.subscription_metadata IS 'Additional subscription metadata from Stripe checkout session';
+COMMENT ON COLUMN users_profile.active IS 'Indicates whether the user account is active (true) or deactivated (false). Deactivated accounts cannot access the system.';
