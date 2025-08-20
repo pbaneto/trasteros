@@ -20,7 +20,7 @@ serve(async (req) => {
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
     // Get the user from the Authorization header
@@ -51,7 +51,7 @@ serve(async (req) => {
     }
 
     const { paymentId } = await req.json()
-    
+    console.log('paymentId', paymentId)
     if (!paymentId) {
       return new Response('Payment ID is required', { 
         status: 400, 
@@ -72,6 +72,8 @@ serve(async (req) => {
       .eq('id', paymentId)
       .single()
 
+    console.log('payment', payment, user)
+
     if (paymentError || !payment) {
       return new Response('Payment not found', { 
         status: 404, 
@@ -90,6 +92,7 @@ serve(async (req) => {
     // For subscription payments, we need to find the invoice
     let invoiceId = payment.stripe_invoice_id
 
+    console.log('payment', payment)
     // If we don't have a stored invoice ID, try to find it via payment intent
     if (!invoiceId && payment.stripe_payment_intent_id) {
       try {
