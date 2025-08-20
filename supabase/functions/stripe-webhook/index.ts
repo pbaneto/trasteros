@@ -87,7 +87,26 @@ serve(async (req) => {
           const subscriptionId = typeof session.subscription === 'string'
             ? session.subscription
             : session.subscription.id
+
+          // Fetch subscription to get the latest invoice
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId)
           
+          const invoiceId = subscription.latest_invoice
+          if (typeof invoiceId !== 'string') {
+            console.error('Missing invoice ID on subscription')
+            return
+          }
+      
+          // Fetch the invoice to get the payment_intent
+          const invoice = await stripe.invoices.retrieve(invoiceId)
+      
+          const paymentIntentId = typeof invoice.payment_intent === 'string' 
+            ? invoice.payment_intent 
+            : invoice.payment_intent?.id ?? null
+      
+          console.log('First invoice ID:', invoice.id)
+          console.log('First payment intent ID:', paymentIntentId)
+      
           console.log('Creating subscription rental with subscription ID:', subscriptionId)
           
           // Generate 4-digit access code
@@ -131,6 +150,36 @@ serve(async (req) => {
 
           console.log(`Subscription rental ${rental.id} created in active status`)
           
+          // Create initial payment record for subscription
+          const { error: paymentError } = await supabaseClient
+            .from('payments')
+            .insert([{
+              rental_id: rental.id,
+              stripe_payment_intent_id: paymentIntentId,
+              stripe_invoice_id: invoice.id,
+              status: 'succeeded',
+              payment_date: new Date().toISOString(),
+              payment_method: 'card',
+              payment_type: 'subscription',
+              subscription_id: subscriptionId,
+              billing_cycle_start: startDate.toISOString().split('T')[0],
+              billing_cycle_end: endDate.toISOString().split('T')[0],
+              is_subscription_active: true,
+              next_billing_date: nextPaymentDate.toISOString().split('T')[0],
+              months_paid: 1,
+              unit_price: parseFloat(unitPrice || '0'),
+              insurance_included: insurance === 'true',
+              insurance_price: insurance === 'true' ? parseFloat(insurancePrice || '0') : 0,
+              total_amount: parseFloat(totalPrice || '0'),
+            }])
+
+          if (paymentError) {
+            console.error('Error creating initial subscription payment record:', paymentError)
+            throw paymentError
+          }
+
+          console.log(`Initial subscription payment record created for rental ${rental.id}`)
+          
           // Update unit status to occupied
           const { error: unitError } = await supabaseClient
             .from('storage_units')
@@ -143,6 +192,103 @@ serve(async (req) => {
           }
 
           console.log(`Successfully processed subscription checkout for user ${userId}, unit ${unitId}`)
+        } else {
+          // Handle single payment
+          console.log('Processing single payment checkout')
+          
+          // For single payments, we need to get the payment intent from the session
+          const paymentIntentId = typeof session.payment_intent === 'string'
+            ? session.payment_intent
+            : session.payment_intent?.id ?? null
+          
+          if (!paymentIntentId) {
+            console.error('Single payment checkout session missing payment intent ID')
+            throw new Error('Payment intent ID missing from single payment checkout session')
+          }
+          
+          // Generate 4-digit access code
+          const accessCode = Math.floor(1000 + Math.random() * 9000).toString()
+          
+          const startDate = new Date()
+          const endDate = new Date()
+          const monthsToPay = parseInt(months || '1')
+          endDate.setMonth(endDate.getMonth() + monthsToPay)
+          
+          const rentalData = {
+            user_id: userId,
+            unit_id: unitId,
+            start_date: startDate.toISOString().split('T')[0],
+            end_date: endDate.toISOString().split('T')[0],
+            price: parseFloat(unitPrice || '0'),
+            insurance_amount: insurance === 'true' ? parseFloat(insurancePrice || '0') : 0,
+            status: 'active',
+            ttlock_code: accessCode,
+            stripe_payment_intent_id: paymentIntentId,
+            months_paid: monthsToPay,
+            payment_type: 'single',
+            subscription_status: null,
+            next_payment_date: null,
+            stripe_subscription_id: null,
+            checkout_session_id: session.id,
+            subscription_metadata: null,
+          }
+          
+          // Create rental record
+          const { data: rental, error: rentalError } = await supabaseClient
+            .from('rentals')
+            .insert([rentalData])
+            .select()
+            .single()
+
+          if (rentalError) {
+            console.error('Error creating single payment rental:', rentalError)
+            throw rentalError
+          }
+
+          console.log(`Single payment rental ${rental.id} created in active status`)
+          
+          // Create payment record for single payment
+          const { error: paymentError } = await supabaseClient
+            .from('payments')
+            .insert([{
+              rental_id: rental.id,
+              stripe_payment_intent_id: paymentIntentId,
+              stripe_invoice_id: null, // Single payments don't have invoices
+              status: 'succeeded',
+              payment_date: new Date().toISOString(),
+              payment_method: 'card',
+              payment_type: 'single',
+              subscription_id: null,
+              billing_cycle_start: startDate.toISOString().split('T')[0],
+              billing_cycle_end: endDate.toISOString().split('T')[0],
+              is_subscription_active: false,
+              next_billing_date: null,
+              months_paid: monthsToPay,
+              unit_price: parseFloat(unitPrice || '0'),
+              insurance_included: insurance === 'true',
+              insurance_price: insurance === 'true' ? parseFloat(insurancePrice || '0') : 0,
+              total_amount: parseFloat(totalPrice || '0'),
+            }])
+
+          if (paymentError) {
+            console.error('Error creating single payment record:', paymentError)
+            throw paymentError
+          }
+
+          console.log(`Single payment record created for rental ${rental.id}`)
+          
+          // Update unit status to occupied
+          const { error: unitError } = await supabaseClient
+            .from('storage_units')
+            .update({ status: 'occupied' })
+            .eq('id', unitId)
+
+          if (unitError) {
+            console.error('Error updating unit status:', unitError)
+            throw unitError
+          }
+
+          console.log(`Successfully processed single payment checkout for user ${userId}, unit ${unitId}`)
         }
         break
       }
@@ -200,16 +346,6 @@ serve(async (req) => {
               console.error('Error updating rental for renewal:', updateRentalError)
               throw updateRentalError
             }
-
-            // Debug invoice object structure
-            console.log('Invoice object debug:', {
-              id: invoice.id,
-              payment_intent: invoice.payment_intent,
-              subscription: invoice.subscription,
-              amount_paid: invoice.amount_paid,
-              status: invoice.status,
-              finalized_at: invoice.finalized_at
-            })
 
             // Create a new payment record for the renewal with detailed payment info
             const { error: paymentError } = await supabaseClient

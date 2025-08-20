@@ -103,14 +103,33 @@ serve(async (req) => {
       })
     } 
 
+    console.log('billingInfo', billingInfo)
+    console.log('user', user)
+
+    const customer = await stripe.customers.create({
+      email: user.email,
+      name: billingInfo?.name?.trim() ||
+            `${billingInfo?.firstName || ''} ${billingInfo?.lastName || ''}`.trim() ||
+            user.email,
+      phone: billingInfo?.phone || undefined,
+      address: {
+        line1: billingInfo?.streetNumber && billingInfo?.street
+          ? `${billingInfo.street} ${billingInfo.streetNumber}`
+          : billingInfo?.street || undefined,
+        postal_code: billingInfo?.postalCode || undefined,
+        city: billingInfo?.municipality || undefined,
+        state: billingInfo?.province || undefined,
+        country: 'ES', // Default to Spain (safe fallback)
+      },
+    });
+
     const sessionConfig: any = {
-      customer_email: user.email,
+      customer: customer.id,
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'subscription',
       success_url: `${req.headers.get('origin')}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/dashboard?wizard=true&step=summary&canceled=true`,
-      collection_method: 'charge_automatically',
       metadata: {
         userId: user.id,
         unitId: unitId.toString(),
@@ -125,24 +144,6 @@ serve(async (req) => {
       },
     }
 
-    // Add billing information if provided
-    if (billingInfo) {
-      sessionConfig.customer_details = {
-        name: billingInfo.name || `${billingInfo.firstName || ''} ${billingInfo.lastName || ''}`.trim() || user.email,
-        email: user.email,
-        address: {
-          line1: billingInfo.street && billingInfo.streetNumber 
-            ? `${billingInfo.street} ${billingInfo.streetNumber}` 
-            : (billingInfo.street || undefined),
-          postal_code: billingInfo.postalCode || undefined,
-          city: billingInfo.municipality || undefined,
-          state: billingInfo.province || undefined,
-          country: 'ES' // Default to Spain
-        },
-        phone: billingInfo.phone || undefined
-      }
-    }
-
     const session = await stripe.checkout.sessions.create(sessionConfig)
     console.log('sessionConfig', session)
 
@@ -151,10 +152,10 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
-      }
-    )
+      }    )
+      
 
-  } catch (error) {
+  } catch (error) {collection_method: 'charge_automatically',
     console.error('Error creating checkout session:', error)
     return new Response(
       JSON.stringify({ error: error.message }),

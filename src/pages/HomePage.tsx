@@ -11,7 +11,7 @@ import { AuthModal, AuthMode } from '../components/auth/AuthModal';
 export const HomePage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { availability, loading: unitsLoading } = useStorageUnits();
+  const { loading: unitsLoading } = useStorageUnits();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
 
@@ -150,8 +150,6 @@ export const HomePage: React.FC = () => {
                     €/mes
                   </span>
                 </div>
-                <ul role="list" className="space-y-5 my-7">
-                </ul>
                 <button
                   type="button"
                   onClick={() => {

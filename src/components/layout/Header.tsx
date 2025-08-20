@@ -10,7 +10,6 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenAuth }) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);

@@ -13,7 +13,6 @@ export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'trasteros' | 'perfil'>('trasteros');
-  const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
   const [showReservationWizard, setShowReservationWizard] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<AuthMode>('login');
