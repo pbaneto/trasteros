@@ -18,7 +18,6 @@ serve(async (req) => {
       httpClient: Stripe.createFetchHttpClient(),
     })
 
-    // Use service role key for webhook access  
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -131,35 +130,7 @@ serve(async (req) => {
           }
 
           console.log(`Subscription rental ${rental.id} created in active status`)
-
-          // Create initial payment record for subscription with detailed payment info
-          const { error: paymentError } = await supabaseClient
-            .from('payments')
-            .insert([{
-              rental_id: rental.id,
-              stripe_payment_intent_id: null, // No payment intent for subscription checkout
-              status: 'succeeded',
-              payment_date: new Date().toISOString(),
-              payment_method: 'card',
-              payment_type: 'subscription',
-              subscription_id: subscriptionId,
-              billing_cycle_start: rentalData.start_date,
-              billing_cycle_end: rentalData.end_date,
-              is_subscription_active: true,
-              next_billing_date: nextPaymentDate.toISOString().split('T')[0],
-              // Payment details
-              months_paid: 1, // Subscription pays for 1 month at a time
-              unit_price: parseFloat(unitPrice || '0'),
-              insurance_included: insurance === 'true',
-              insurance_price: insurance === 'true' ? parseFloat(insurancePrice || '0') : 0,
-              total_amount: parseFloat(totalPrice || '0'),
-            }])
           
-          if (paymentError) {
-            console.error('Error creating payment record:', paymentError)
-            throw paymentError
-          }
-
           // Update unit status to occupied
           const { error: unitError } = await supabaseClient
             .from('storage_units')
@@ -191,6 +162,8 @@ serve(async (req) => {
           const subscriptionId = typeof invoice.subscription === 'string' 
             ? invoice.subscription 
             : invoice.subscription.id
+          
+          console.log('Invoice object:', invoice)
           
           console.log('Processing subscription renewal for subscription ID:', subscriptionId)
           
@@ -228,12 +201,23 @@ serve(async (req) => {
               throw updateRentalError
             }
 
+            // Debug invoice object structure
+            console.log('Invoice object debug:', {
+              id: invoice.id,
+              payment_intent: invoice.payment_intent,
+              subscription: invoice.subscription,
+              amount_paid: invoice.amount_paid,
+              status: invoice.status,
+              finalized_at: invoice.finalized_at
+            })
+
             // Create a new payment record for the renewal with detailed payment info
             const { error: paymentError } = await supabaseClient
               .from('payments')
               .insert([{
                 rental_id: rental.id,
-                stripe_payment_intent_id: invoice.payment_intent as string,
+                stripe_payment_intent_id: invoice.payment_intent || null, // Handle null payment_intent
+                stripe_invoice_id: invoice.id, // Store invoice ID for downloads
                 status: 'succeeded',
                 payment_date: new Date().toISOString(),
                 payment_method: 'card',

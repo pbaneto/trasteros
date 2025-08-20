@@ -149,6 +149,16 @@ export const ReservationWizard: React.FC<ReservationWizardProps> = ({ onClose, i
           unitPrice: basePriceWithIva,
           totalPrice: totalPriceWithIva,
           unitSize: selectedSize,
+          billingInfo: user ? {
+            firstName: user.firstName,
+            lastName: user.lastName,
+            street: user.street,
+            streetNumber: user.streetNumber,
+            postalCode: user.postalCode,
+            municipality: user.municipality,
+            province: user.province,
+            phone: user.phone
+          } : undefined,
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`,

@@ -44,13 +44,13 @@ serve(async (req) => {
     const { 
       unitId, 
       months, 
-      paymentType,
       insurance, 
       insurancePrice,
       insuranceCoverage,
       unitPrice, 
       totalPrice,
-      unitSize 
+      unitSize,
+      billingInfo
     } = await req.json()
 
     // Validar que la unidad esté disponible
@@ -65,58 +65,57 @@ serve(async (req) => {
       throw new Error('Unidad no disponible')
     }
 
-    // Crear los line items para Stripe basados en el tipo de pago
+    // Crear los line items para Stripe para suscripción mensual
     const lineItems: any[] = []
     
-    if (paymentType === 'subscription') {
+    lineItems.push({
+      price_data: {
+        currency: 'eur',
+        product_data: {
+          name: `Unidad de almacenamiento ${unitSize}m²`,
+          description: `Alquiler mensual de trastero ${unitSize}m²`,
+        },
+        unit_amount: Math.round(unitPrice * 100), // Stripe usa centavos
+        recurring: {
+          interval: 'month',
+        },
+      },
+      quantity: 1,
+    })
+
+    // Agregar seguro si se seleccionó (también recurrente)
+    if (insurance && insurancePrice > 0) {
+      const formatPrice = (amount: number) => `€${amount.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      
       lineItems.push({
         price_data: {
           currency: 'eur',
           product_data: {
-            name: `Unidad de almacenamiento ${unitSize}m²`,
-            description: `Alquiler mensual de trastero ${unitSize}m²`,
+            name: 'Seguro de contenido',
+            description: `Cobertura hasta ${formatPrice(insuranceCoverage || 0)} contra daños, robos e incendios`,
           },
-          unit_amount: Math.round(unitPrice * 100), // Stripe usa centavos
+          unit_amount: Math.round(insurancePrice * 100),
           recurring: {
             interval: 'month',
           },
         },
         quantity: 1,
       })
-
-      // Agregar seguro si se seleccionó (también recurrente)
-      if (insurance && insurancePrice > 0) {
-        const formatPrice = (amount: number) => `€${amount.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-        
-        lineItems.push({
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: 'Seguro de contenido',
-              description: `Cobertura hasta ${formatPrice(insuranceCoverage || 0)} contra daños, robos e incendios`,
-            },
-            unit_amount: Math.round(insurancePrice * 100),
-            recurring: {
-              interval: 'month',
-            },
-          },
-          quantity: 1,
-        })
-      }
     } 
 
     const sessionConfig: any = {
       customer_email: user.email,
       payment_method_types: ['card'],
       line_items: lineItems,
-      mode: paymentType === 'subscription' ? 'subscription' : 'payment',
+      mode: 'subscription',
       success_url: `${req.headers.get('origin')}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/dashboard?wizard=true&step=summary&canceled=true`,
+      collection_method: 'charge_automatically',
       metadata: {
         userId: user.id,
         unitId: unitId.toString(),
         months: months.toString(),
-        paymentType: paymentType,
+        paymentType: 'subscription',
         insurance: insurance.toString(),
         insurancePrice: (insurancePrice || 0).toString(),
         insuranceCoverage: insuranceCoverage.toString(),
@@ -126,13 +125,26 @@ serve(async (req) => {
       },
     }
 
-    // For subscriptions, allow payment method collection for future payments
-    if (paymentType === 'subscription') {
-      sessionConfig.payment_method_collection = 'always'
-      // No trial period needed - Stripe will charge immediately by default for new subscriptions
+    // Add billing information if provided
+    if (billingInfo) {
+      sessionConfig.customer_details = {
+        name: billingInfo.name || `${billingInfo.firstName || ''} ${billingInfo.lastName || ''}`.trim() || user.email,
+        email: user.email,
+        address: {
+          line1: billingInfo.street && billingInfo.streetNumber 
+            ? `${billingInfo.street} ${billingInfo.streetNumber}` 
+            : (billingInfo.street || undefined),
+          postal_code: billingInfo.postalCode || undefined,
+          city: billingInfo.municipality || undefined,
+          state: billingInfo.province || undefined,
+          country: 'ES' // Default to Spain
+        },
+        phone: billingInfo.phone || undefined
+      }
     }
 
     const session = await stripe.checkout.sessions.create(sessionConfig)
+    console.log('sessionConfig', session)
 
     return new Response(
       JSON.stringify({ url: session.url }),

@@ -4,85 +4,94 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Trasteros is a self-storage rental platform built with React/TypeScript, Supabase, and Stripe. Users can browse storage units, make reservations, manage payments, and access units with digital codes via TTLock API integration.
+Trasteros is a React TypeScript web application for storage unit rentals with integrated payment processing, smart lock management, and WhatsApp notifications. The architecture combines:
+
+- **Frontend**: React 18 + TypeScript + Tailwind CSS + React Router + React Query
+- **Backend**: Supabase (PostgreSQL + Auth + Edge Functions + Storage)
+- **Payment**: Stripe integration with subscriptions support
+- **Smart Locks**: TTLock API integration
+- **Notifications**: Twilio WhatsApp messaging
 
 ## Development Commands
 
-### Core Commands
-- `npm start` - Start development server on http://localhost:3000
-- `npm run build` - Build production bundle
-- `npm test` - Run tests with Jest and React Testing Library
+```bash
+# Start development server
+npm start
 
-### Supabase Local Development
-- Start Supabase locally: `npx supabase start`
-- Apply migrations: `npx supabase migration up`
-- Reset database: `npx supabase db reset`
-- View dashboard: `npx supabase dashboard`
+# Build production bundle
+npm run build
 
-### Database Management
-- Migrations are in `supabase/migrations/`
-- Initial schema: `20240101000000_initial_schema.sql`
-- Seed data: `supabase/seed.sql`
+# Run tests
+npm test
+
+# Start Supabase local development
+npx supabase start
+
+# Stop Supabase local development
+npx supabase stop
+
+# Reset Supabase database with migrations
+npx supabase db reset
+
+# Generate TypeScript types from Supabase schema
+npx supabase gen types typescript --local > src/types/supabase.ts
+
+# Deploy Supabase edge functions
+npx supabase functions deploy [function-name]
+
+# View Supabase logs
+npx supabase functions logs [function-name]
+```
 
 ## Architecture
 
-### Frontend Structure
+### Core Structure
+- `src/contexts/AuthContext.tsx` - Central authentication state management using Supabase Auth
+- `src/utils/supabase.ts` - Supabase client configuration with PKCE flow
+- `src/utils/stripe.ts` - Stripe client and payment utilities
+- `src/types/index.ts` - Core TypeScript interfaces for User, StorageUnit, Rental, Payment
+
+### Component Organization
+- `src/components/auth/` - Authentication forms and modals
+- `src/components/dashboard/` - User dashboard components
+- `src/components/storage/` - Storage unit reservation and management
+- `src/components/payment/` - Stripe payment integration components
+- `src/pages/` - Route-level page components
+
+### Supabase Integration
+- Database: PostgreSQL with RLS policies for security
+- Edge Functions: `/supabase/functions/` contains Deno functions for:
+  - `create-checkout-session` - Stripe payment intent creation
+  - `stripe-webhook` - Payment processing webhooks  
+  - `send-whatsapp-verification` - Twilio WhatsApp notifications
+  - `verify-phone-code` - Phone number verification
+- Migrations: Complete schema in `/supabase/migrations/`
+- Local development uses ports: 54321 (API), 54322 (DB), 54323 (Studio)
+
+### Key Features
+- **Authentication**: Email/password and Google OAuth via Supabase Auth
+- **Payment Processing**: Single payments and subscriptions via Stripe
+- **Smart Lock Integration**: TTLock API for access code generation
+- **Phone Verification**: WhatsApp-based phone verification via Twilio
+- **Responsive UI**: Tailwind CSS with custom primary/secondary color scheme
+
+### Environment Variables Required
 ```
-src/
-├── components/
-│   ├── auth/           # Authentication (LoginForm, RegisterForm, etc.)
-│   ├── dashboard/      # User dashboard components
-│   ├── layout/         # Layout components (Header, Footer, Sidebar)
-│   ├── payment/        # Stripe payment processing
-│   └── storage/        # Storage unit management
-├── contexts/
-│   └── AuthContext.tsx # Global auth state management
-├── hooks/              # Custom React hooks
-├── pages/              # Route-level page components
-├── types/              # TypeScript type definitions
-└── utils/              # Utility functions and API clients
+REACT_APP_SUPABASE_URL=
+REACT_APP_SUPABASE_ANON_KEY=
+REACT_APP_STRIPE_PUBLISHABLE_KEY=
+STRIPE_SECRET_KEY=
+GOOGLE_CLIENT_ID=
+GOOGLE_SECRET=
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_WHATSAPP_NUMBER=
 ```
 
-### Key Technologies
-- **Frontend**: React 18, TypeScript, Tailwind CSS
-- **Backend**: Supabase (PostgreSQL, Auth, RLS)
-- **Payments**: Stripe integration with webhooks
-- **Forms**: React Hook Form + Zod validation
-- **State**: React Context + React Query
-- **Access Control**: TTLock API for digital locks
+### Database Schema Overview
+- `users_profile` - Extended user information with phone verification
+- `storage_units` - Available storage units with pricing
+- `rentals` - User rentals with subscription support and TTLock codes
+- `payments` - Payment records with Stripe integration and detailed billing info
 
-### Database Schema
-- `users_profile` - Extended user profiles (linked to auth.users)
-- `storage_units` - Available units (2m², 4m², 6m² at €45 one-time)
-- `rentals` - User rental records with access codes
-- `payments` - Payment transaction history
-
-### Configuration
-- TypeScript path aliases: `@/*` maps to `src/*`
-- Custom Tailwind theme with primary/secondary color palettes
-- Environment variables for Supabase, Stripe, and TTLock APIs
-
-### Integration Points
-- **Supabase**: Database, auth, RLS policies in `src/utils/supabase.ts`
-- **Stripe**: Payment processing in `src/utils/stripe.ts`
-- **TTLock**: Digital lock integration in `src/utils/ttlock.ts`
-- **QR Codes**: Generated for unit access using `qrcode` library
-
-### Development Patterns
-- Functional components with hooks
-- Context API for global state (auth, units, payments)
-- React Query for server state management
-- Form validation with React Hook Form + Zod
-- Row Level Security (RLS) for data access control
-
-### Authentication Flow
-1. User registration/login via Supabase Auth
-2. Profile creation in `users_profile` table
-3. Optional phone verification via SMS
-4. JWT-based session management with localStorage persistence
-
-### Payment Processing
-1. Unit selection with optional insurance (€20 one-time for €4000 coverage)
-2. Stripe payment processing with stored payment methods
-3. One-time payment processing
-4. Access code generation upon successful payment
+The application uses React Query for server state management and implements protected routes with automatic redirects based on authentication status.

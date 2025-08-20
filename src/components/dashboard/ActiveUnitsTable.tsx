@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Rental, Payment } from '../../types';
 import { formatPrice } from '../../utils/stripe';
-import { supabase } from '../../utils/supabase';
+import { supabase, supabaseConfig } from '../../utils/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -66,7 +66,7 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
           id,
           rental_id,
           stripe_payment_intent_id,
-          amount,
+          stripe_invoice_id,
           status,
           payment_date,
           payment_method,
@@ -76,6 +76,10 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
           billing_cycle_end,
           is_subscription_active,
           next_billing_date,
+          unit_price,
+          insurance_included,
+          insurance_price,
+          total_amount,
           rental:rentals(
             id,
             unit:storage_units(unit_number, size_m2)
@@ -91,7 +95,7 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
         [rentalId]: transformPayments(data as any || [])
       }));
     } catch (error: any) {
-      toast.error('Error al cargar el historial de pagos');
+      toast.error('Error al cargar las facturas');
       console.error('Error fetching payments:', error);
     } finally {
       setLoadingPayments(prev => {
@@ -228,32 +232,47 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
   };
 
 
-  const getPaymentMethodIcon = (method: string) => {
-    switch (method) {
-      case 'card':
-        return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-          </svg>
-        );
-      case 'google_pay':
-        return (
-          <svg className="w-4 h-4" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-          </svg>
-        );
-      case 'paypal':
-        return (
-          <svg className="w-4 h-4" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81c1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106z" />
-          </svg>
-        );
-      default:
-        return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-          </svg>
-        );
+  const handleDownloadInvoice = async (payment: Payment) => {
+    if (!payment.stripeInvoiceId && !payment.stripePaymentIntentId) {
+      toast.error('No hay factura disponible para este pago');
+      return;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Error de autenticación');
+        return;
+      }
+
+      const response = await fetch(`${supabaseConfig.url}/functions/v1/download-invoice`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          paymentId: payment.id
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.type === 'no_invoice') {
+          toast.error('Esta factura no está disponible para descarga');
+          return;
+        }
+        throw new Error(errorData.error || 'Error al descargar la factura');
+      }
+
+      const result = await response.json();
+      
+      // Open the Stripe invoice PDF in a new tab
+      window.open(result.downloadUrl, '_blank');
+      
+    } catch (error: any) {
+      console.error('Error downloading invoice:', error);
+      toast.error('Error al descargar la factura');
     }
   };
 
@@ -323,28 +342,19 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
               <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center space-x-4">
                   <div className="flex-shrink-0">
-                    <div className="w-16 h-16 bg-blue-100 rounded-xl dark:bg-blue-900 flex items-center justify-center">
-                      <svg className="w-8 h-8 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4m0 0v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
+                    <div className="w-16 h-16 bg-blue-100 rounded-xl dark:bg-blue-900 flex items-center justify-center text-blue-900 font-bold dark:text-blue-100">
+                      {rental.unit?.unitNumber}
                     </div>
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h5 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-1">
-                          Trastero {rental.unit?.unitNumber}
-                        </h5>
-                        <p className="text-base text-gray-500 dark:text-gray-400">
-                          {rental.unit?.sizeM2}m² • {rental.unit?.locationDescription}
-                        </p>
-                      </div>
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(rental.status)}`}>
-                        {getStatusText(rental.status)}
-                      </span>
-                    </div>
+                    <h5 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-1">
+                      Trastero {rental.unit?.sizeM2}m² 
+                    </h5>
                   </div>
                 </div>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(rental.status)}`}>
+                  {getStatusText(rental.status)}
+                </span>
               </div>
 
               {/* Expiry Warning */}
@@ -365,7 +375,6 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
               <div className="grid 2xl:grid-cols-2 gap-6">
                 {/* Left Column - Unit Details */}
                 <div className="space-y-4">
-                  <h6 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide">Detalles del Trastero</h6>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
                       <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Renovación:</span>
@@ -387,7 +396,6 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
 
                 {/* Right Column - Actions */}
                 <div className="space-y-4">
-                  <h6 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide">Acciones</h6>
                   <div className="space-y-3">
                     {shouldShowVerCodigo(rental) && (
                       <button
@@ -408,7 +416,7 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      Ver historial de pagos
+                      Ver facturas
                     </button>
 
                     {rental.status === 'active' && (
@@ -450,87 +458,90 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
                 </div>
               )}
 
-              {/* Expandable Payment History - Full Width */}
+              {/* Expandable Invoice History - Table Format */}
               {expandedRentals.has(rental.id) && (
                 <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <h6 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wide">Historial de Pagos</h6>
+                  <h6 className="text-sm font-semibold text-gray-900 dark:text-white mb-6 uppercase tracking-wide">Facturas</h6>
                   {loadingPayments.has(rental.id) ? (
-                    <div className="animate-pulse space-y-3">
-                      {[...Array(3)].map((_, i) => (
-                        <div key={i} className="h-20 bg-gray-200 rounded-lg dark:bg-gray-700"></div>
-                      ))}
+                    <div className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-full mb-4 dark:bg-gray-700"></div>
+                      <div className="space-y-3">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="h-12 bg-gray-200 rounded dark:bg-gray-700"></div>
+                        ))}
+                      </div>
                     </div>
                   ) : (
-                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                    <div className="overflow-hidden">
                       {rentalPayments[rental.id]?.length > 0 ? (
-                        rentalPayments[rental.id].map((payment) => (
-                          <div 
-                            key={payment.id} 
-                            className={`p-4 border rounded-lg ${
-                              payment.status === 'succeeded' 
-                                ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
-                                : 'bg-gray-50 border-gray-200 dark:bg-gray-700 dark:border-gray-600'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-4">
-                                <span className={`${
-                                  payment.status === 'succeeded' 
-                                    ? 'text-green-600 dark:text-green-400' 
-                                    : 'text-gray-400 dark:text-gray-500'
-                                }`}>
-                                  {getPaymentMethodIcon(payment.paymentMethod)}
-                                </span>
-                                <div>
-                                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead className="bg-gray-50 dark:bg-gray-800">
+                              <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                  Fecha
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                  Total
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                  Estado
+                                </th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                  Acciones
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
+                              {rentalPayments[rental.id].map((payment) => (
+                                <tr key={payment.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                     {payment.paymentDate 
-                                      ? format(new Date(payment.paymentDate), 'dd MMM yyyy HH:mm', { locale: es })
-                                      : 'No definido'
+                                      ? format(new Date(payment.paymentDate), 'dd MMM yyyy', { locale: es })
+                                      : 'Fecha pendiente'
                                     }
-                                  </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    {payment.paymentMethod === 'card' && 'Tarjeta'}
-                                    {payment.paymentMethod === 'google_pay' && 'Google Pay'}
-                                    {payment.paymentMethod === 'paypal' && 'PayPal'}
-                                    {!['card', 'google_pay', 'paypal'].includes(payment.paymentMethod) && payment.paymentMethod}
-                                    {payment.paymentType === 'single' && ' • Pago único'}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="space-y-1">
-                                  <div className="flex justify-between items-center min-w-[120px]">
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">Trastero:</span>
-                                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                      {formatPrice(payment.unitPrice)}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                    {formatPrice(payment.totalAmount)}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                      payment.status === 'succeeded' 
+                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                        : payment.status === 'pending'
+                                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                                        : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                                    }`}>
+                                      {payment.status === 'succeeded' ? 'Pagado' : 
+                                       payment.status === 'pending' ? 'Pendiente' : 'Fallido'}
                                     </span>
-                                  </div>
-                                  {payment.insuranceIncluded && payment.insurancePrice > 0 && (
-                                    <div className="flex justify-between items-center min-w-[120px]">
-                                      <span className="text-xs text-gray-500 dark:text-gray-400">Seguro:</span>
-                                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                        {formatPrice(payment.insurancePrice)}
-                                      </span>
-                                    </div>
-                                  )}
-                                  <div className="flex justify-between items-center min-w-[120px] pt-1 border-t border-gray-200 dark:border-gray-600">
-                                    <span className="text-sm font-semibold text-gray-900 dark:text-white">Total:</span>
-                                    <span className="text-base font-bold text-gray-900 dark:text-white">
-                                      {formatPrice(payment.totalAmount)}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    {payment.status === 'succeeded' && (payment.stripeInvoiceId || payment.stripePaymentIntentId) && (
+                                      <button
+                                        onClick={() => handleDownloadInvoice(payment)}
+                                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600"
+                                      >
+                                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        Descargar
+                                      </button>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       ) : (
-                        <div className="text-center py-8">
-                          <svg className="mx-auto h-10 w-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
-                          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                            No hay pagos registrados
+                          <h3 className="mt-4 text-sm font-medium text-gray-900 dark:text-white">No hay facturas</h3>
+                          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            Las facturas aparecerán aquí una vez que se procesen los pagos.
                           </p>
                         </div>
                       )}

@@ -10,10 +10,27 @@ CREATE TABLE IF NOT EXISTS users_profile (
     email VARCHAR(255),
     first_name VARCHAR(100),
     last_name VARCHAR(100),
+    dni VARCHAR(20),
+    -- Personal address fields
+    street VARCHAR(200),
+    street_number VARCHAR(20),
+    postal_code VARCHAR(5),
+    municipality VARCHAR(100),
+    province VARCHAR(50),
     phone VARCHAR(20),
     phone_verified BOOLEAN DEFAULT FALSE,
     verification_code VARCHAR(6),
     verification_code_expires_at TIMESTAMP WITH TIME ZONE,
+    -- Billing information fields
+    billing_same_as_personal BOOLEAN DEFAULT TRUE,
+    billing_type VARCHAR(20) CHECK (billing_type IN ('person', 'company')),
+    billing_name VARCHAR(200),
+    billing_nif_cif VARCHAR(20),
+    billing_street VARCHAR(200),
+    billing_street_number VARCHAR(20),
+    billing_postal_code VARCHAR(5),
+    billing_municipality VARCHAR(100),
+    billing_province VARCHAR(50),
     active BOOLEAN DEFAULT true NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
@@ -59,6 +76,7 @@ CREATE TABLE IF NOT EXISTS payments (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     rental_id UUID REFERENCES rentals(id) ON DELETE CASCADE,
     stripe_payment_intent_id VARCHAR(255),
+    stripe_invoice_id VARCHAR(255),
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'succeeded', 'failed')),
     payment_date TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
     payment_method VARCHAR(50) NOT NULL,
@@ -81,6 +99,10 @@ CREATE TABLE IF NOT EXISTS payments (
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_users_profile_email ON users_profile(email);
 CREATE INDEX IF NOT EXISTS idx_users_profile_active ON users_profile(active);
+CREATE INDEX IF NOT EXISTS idx_users_profile_dni ON users_profile(dni);
+CREATE INDEX IF NOT EXISTS idx_users_profile_postal_code ON users_profile(postal_code);
+CREATE INDEX IF NOT EXISTS idx_users_profile_province ON users_profile(province);
+CREATE INDEX IF NOT EXISTS idx_users_profile_billing_type ON users_profile(billing_type);
 CREATE INDEX IF NOT EXISTS idx_storage_units_status ON storage_units(status);
 CREATE INDEX IF NOT EXISTS idx_storage_units_size ON storage_units(size_m2);
 CREATE INDEX IF NOT EXISTS idx_rentals_user_id ON rentals(user_id);
@@ -95,6 +117,7 @@ CREATE INDEX IF NOT EXISTS idx_payments_rental_id ON payments(rental_id);
 CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
 CREATE INDEX IF NOT EXISTS idx_payments_payment_type ON payments(payment_type);
 CREATE INDEX IF NOT EXISTS idx_payments_subscription_id ON payments(subscription_id);
+CREATE INDEX IF NOT EXISTS idx_payments_stripe_invoice_id ON payments(stripe_invoice_id);
 CREATE INDEX IF NOT EXISTS idx_payments_next_billing_date ON payments(next_billing_date);
 -- Payment detail indexes
 CREATE INDEX IF NOT EXISTS idx_payments_months_paid ON payments(months_paid);
@@ -248,6 +271,7 @@ BEGIN
         email, 
         first_name, 
         last_name, 
+        billing_name,
         phone, 
         phone_verified,
         active
@@ -256,6 +280,16 @@ BEGIN
         NEW.email,
         first_name_value,
         last_name_value,
+        CASE 
+            WHEN first_name_value != '' AND last_name_value != '' THEN 
+                first_name_value || ' ' || last_name_value
+            WHEN first_name_value != '' THEN 
+                first_name_value
+            WHEN last_name_value != '' THEN 
+                last_name_value
+            ELSE 
+                NEW.email
+        END,
         NEW.raw_user_meta_data->>'phone',
         false,
         true
@@ -402,7 +436,25 @@ COMMENT ON COLUMN payments.unit_price IS 'Monthly unit rental price at time of p
 COMMENT ON COLUMN payments.insurance_included IS 'Whether insurance was included in this payment';
 COMMENT ON COLUMN payments.insurance_price IS 'Insurance cost included in this payment (one-time fee)';
 COMMENT ON COLUMN payments.total_amount IS 'Total amount paid including taxes';
+COMMENT ON COLUMN payments.stripe_invoice_id IS 'Stripe invoice ID for downloadable invoices (subscription payments)';
 COMMENT ON COLUMN rentals.stripe_subscription_id IS 'Stripe subscription ID for subscription-based rentals';
 COMMENT ON COLUMN rentals.checkout_session_id IS 'Stripe checkout session ID for this rental';
 COMMENT ON COLUMN rentals.subscription_metadata IS 'Additional subscription metadata from Stripe checkout session';
 COMMENT ON COLUMN users_profile.active IS 'Indicates whether the user account is active (true) or deactivated (false). Deactivated accounts cannot access the system.';
+
+-- Comments for new user profile fields
+COMMENT ON COLUMN users_profile.dni IS 'Spanish DNI (Documento Nacional de Identidad)';
+COMMENT ON COLUMN users_profile.street IS 'Street name for personal address';
+COMMENT ON COLUMN users_profile.street_number IS 'Street number for personal address';
+COMMENT ON COLUMN users_profile.postal_code IS 'Spanish postal code (5 digits)';
+COMMENT ON COLUMN users_profile.municipality IS 'Municipality (municipio) for personal address';
+COMMENT ON COLUMN users_profile.province IS 'Spanish province for personal address';
+COMMENT ON COLUMN users_profile.billing_same_as_personal IS 'Whether to use personal information for billing (default: true)';
+COMMENT ON COLUMN users_profile.billing_type IS 'Type of billing entity: person (persona física) or company (empresa)';
+COMMENT ON COLUMN users_profile.billing_name IS 'Full name (for person) or company name (razón social) for billing';
+COMMENT ON COLUMN users_profile.billing_nif_cif IS 'NIF (for person) or CIF (for company) for billing purposes';
+COMMENT ON COLUMN users_profile.billing_street IS 'Street name for billing address (if different from personal)';
+COMMENT ON COLUMN users_profile.billing_street_number IS 'Street number for billing address (if different from personal)';
+COMMENT ON COLUMN users_profile.billing_postal_code IS 'Postal code for billing address (if different from personal)';
+COMMENT ON COLUMN users_profile.billing_municipality IS 'Municipality for billing address (if different from personal)';
+COMMENT ON COLUMN users_profile.billing_province IS 'Province for billing address (if different from personal)';

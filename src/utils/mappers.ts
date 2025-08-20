@@ -43,6 +43,7 @@ interface RawPayment {
   id: string;
   rental_id: string;
   stripe_payment_intent_id: string;
+  stripe_invoice_id?: string;
   status: 'pending' | 'succeeded' | 'failed';
   payment_date: string;
   payment_method: string;
@@ -121,6 +122,7 @@ export const transformPayment = (rawPayment: RawPayment): Payment => ({
   id: rawPayment.id,
   rentalId: rawPayment.rental_id,
   stripePaymentIntentId: rawPayment.stripe_payment_intent_id,
+  stripeInvoiceId: rawPayment.stripe_invoice_id,
   status: rawPayment.status,
   paymentDate: rawPayment.payment_date,
   paymentMethod: rawPayment.payment_method,

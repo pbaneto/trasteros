@@ -3,6 +3,12 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  dni?: string;
+  street?: string;
+  streetNumber?: string;
+  postalCode?: string;
+  municipality?: string;
+  province?: string;
   phone?: string;
   phoneVerified: boolean;
   active: boolean;
@@ -40,6 +46,7 @@ export interface Payment {
   id: string;
   rentalId: string;
   stripePaymentIntentId: string;
+  stripeInvoiceId?: string;
   status: 'pending' | 'succeeded' | 'failed';
   paymentDate: string;
   paymentMethod: string;
