@@ -167,9 +167,8 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
   const getLastDayToRemoveStuff = (rental: Rental): string => {
     if (!rental.endDate) return 'No definido';
     
-    // Add 7 days grace period after rental end date
     const endDate = new Date(rental.endDate + 'T00:00:00');
-    const lastDay = new Date(endDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const lastDay = new Date(endDate.getTime());
     
     return format(lastDay, 'd/M/yyyy');
   };
@@ -400,8 +399,8 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
                         onClick={() => toggleAccessCode(rental.id)}
                         className="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-center text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-900 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-800 dark:focus:ring-blue-800 min-h-[44px] touch-manipulation"
                       >
-                        <svg className="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
+                        <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
                         <span className="truncate">Ver código de acceso</span>
                       </button>
@@ -439,7 +438,7 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 dark:bg-blue-900/20 dark:border-blue-800">
                     <div className="text-center">
                       <svg className="mx-auto h-12 w-12 text-blue-600 dark:text-blue-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                       <div className="space-y-3">
                         <p className="text-sm text-blue-800 dark:text-blue-300 font-medium">
@@ -593,9 +592,6 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
                         <h4 className="text-sm font-medium text-yellow-800">
                           ¿Estás seguro de que quieres cancelar este trastero?
                         </h4>
-                        <p className="text-sm text-yellow-700 mt-2">
-                          Esta acción no se puede deshacer.
-                        </p>
                       </div>
                     </div>
                   </div>
