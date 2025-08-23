@@ -59,7 +59,7 @@ serve(async (req) => {
         }
         console.log('Session metadata:', session.metadata)
 
-        const { userId, unitId, months, paymentType, insurance, insurancePrice, insuranceCoverage, unitSize, unitPrice, totalPrice } = session.metadata
+        const { userId, unitId, months, paymentType, unitSize, unitPrice, totalPrice } = session.metadata
         
         // Validate required metadata (test events may not have proper metadata)
         if (!userId || !unitId) {
@@ -123,7 +123,6 @@ serve(async (req) => {
             start_date: startDate.toISOString().split('T')[0],
             end_date: endDate.toISOString().split('T')[0],
             price: parseFloat(unitPrice || '0'),
-            insurance_amount: insurance === 'true' ? parseFloat(insurancePrice || '0') : 0,
             status: 'active',
             ttlock_code: accessCode,
             stripe_payment_intent_id: null, // Subscriptions don't have payment intent at checkout
@@ -168,8 +167,6 @@ serve(async (req) => {
               next_billing_date: nextPaymentDate.toISOString().split('T')[0],
               months_paid: 1,
               unit_price: parseFloat(unitPrice || '0'),
-              insurance_included: insurance === 'true',
-              insurance_price: insurance === 'true' ? parseFloat(insurancePrice || '0') : 0,
               total_amount: parseFloat(totalPrice || '0'),
             }])
 
@@ -220,7 +217,6 @@ serve(async (req) => {
             start_date: startDate.toISOString().split('T')[0],
             end_date: endDate.toISOString().split('T')[0],
             price: parseFloat(unitPrice || '0'),
-            insurance_amount: insurance === 'true' ? parseFloat(insurancePrice || '0') : 0,
             status: 'active',
             ttlock_code: accessCode,
             stripe_payment_intent_id: paymentIntentId,
@@ -265,8 +261,6 @@ serve(async (req) => {
               next_billing_date: null,
               months_paid: monthsToPay,
               unit_price: parseFloat(unitPrice || '0'),
-              insurance_included: insurance === 'true',
-              insurance_price: insurance === 'true' ? parseFloat(insurancePrice || '0') : 0,
               total_amount: parseFloat(totalPrice || '0'),
             }])
 
@@ -365,9 +359,7 @@ serve(async (req) => {
                 next_billing_date: nextPaymentDate.toISOString().split('T')[0],
                 // Payment details for renewal (1 month)
                 months_paid: 1,
-                unit_price: rental.price,
-                insurance_included: rental.insurance_amount > 0,
-                insurance_price: 0, // Insurance is only charged on first payment
+                unit_price: rental.price, 
                 total_amount: (invoice.amount_paid || 0) / 100,
               }])
 

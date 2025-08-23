@@ -168,7 +168,7 @@ export const HomePage: React.FC = () => {
                 >
                   {unitsLoading 
                     ? 'Cargando...'
-                    : 'Reservar Ahora'
+                    : 'Alquilar ahora'
                   }
                 </button>
               </div>

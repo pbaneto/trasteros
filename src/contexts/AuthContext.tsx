@@ -219,6 +219,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const refreshUser = async (): Promise<void> => {
+    if (!user?.id) return;
+    
+    try {
+      const profile = await loadUserProfile(user.id);
+      setUser(profile);
+    } catch (error) {
+      console.error('Error refreshing user profile:', error);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     loading,
@@ -229,6 +240,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetPassword,
     resendConfirmation,
     verifyOTP,
+    refreshUser,
   };
 
   return (

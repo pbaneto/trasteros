@@ -27,6 +27,7 @@ const profileSchema = z.object({
   municipality: z.string().min(2, 'El municipio debe tener al menos 2 caracteres').optional(),
   province: z.string().optional(),
   email: z.string().email('Introduce un email válido'),
+  phonePrefix: z.string().optional(),
   phone: z.string().optional(),
   useSameForBilling: z.boolean(),
   billingType: z.enum(['nif', 'cif']).optional(),
@@ -131,6 +132,7 @@ export const UserProfile: React.FC<UserProfileProps> = () => {
       municipality: user?.municipality || '',
       province: user?.province || '',
       email: user?.email || '',
+      phonePrefix: '+34',
       phone: user?.phone || '',
       useSameForBilling: true,
       billingType: 'nif',
@@ -228,7 +230,7 @@ export const UserProfile: React.FC<UserProfileProps> = () => {
         postal_code: data.postalCode,
         municipality: data.municipality,
         province: data.province,
-        phone: data.phone,
+        phone: data.phonePrefix && data.phone ? `${data.phonePrefix}${data.phone}` : data.phone,
         billing_same_as_personal: data.useSameForBilling,
         ...billingData,
         updated_at: new Date().toISOString(),
@@ -268,8 +270,11 @@ export const UserProfile: React.FC<UserProfileProps> = () => {
   };
 
   const handleSendVerificationCode = async () => {
-    const phoneValue = profileForm.getValues('phone');
-    if (!phoneValue) {
+    const phonePrefix = profileForm.getValues('phonePrefix');
+    const phoneNumber = profileForm.getValues('phone');
+    const fullPhoneNumber = phonePrefix && phoneNumber ? `${phonePrefix}${phoneNumber}` : phoneNumber;
+    
+    if (!phoneNumber) {
       toast.error('Introduce un número de teléfono primero');
       return;
     }
@@ -277,7 +282,7 @@ export const UserProfile: React.FC<UserProfileProps> = () => {
     setIsLoading(true);
     try {
       const { error } = await supabase.functions.invoke('send-whatsapp-verification', {
-        body: { phoneNumber: phoneValue }
+        body: { phoneNumber: fullPhoneNumber }
       });
 
       if (error) {
@@ -294,13 +299,15 @@ export const UserProfile: React.FC<UserProfileProps> = () => {
   };
 
   const handleVerifyCode = async (code: string) => {
-    const phoneValue = profileForm.getValues('phone');
+    const phonePrefix = profileForm.getValues('phonePrefix');
+    const phoneNumber = profileForm.getValues('phone');
+    const fullPhoneNumber = phonePrefix && phoneNumber ? `${phonePrefix}${phoneNumber}` : phoneNumber;
     
     setIsLoading(true);
     try {
       const { error } = await supabase.functions.invoke('verify-phone-code', {
         body: { 
-          phoneNumber: phoneValue, 
+          phoneNumber: fullPhoneNumber, 
           verificationCode: code 
         }
       });
@@ -419,10 +426,7 @@ export const UserProfile: React.FC<UserProfileProps> = () => {
           </div>
 
           {/* Address Information */}
-          <div className="border-t border-gray-200 dark:border-gray-600 pt-6">
-            <h4 className="text-base font-medium text-gray-900 dark:text-white mb-4">
-              Dirección
-            </h4>
+          <div className="pt-6">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               <div className="sm:col-span-2 lg:col-span-2">
                 <FormField 
@@ -499,10 +503,7 @@ export const UserProfile: React.FC<UserProfileProps> = () => {
           </div>
 
           {/* Contact Information */}
-          <div className="border-t border-gray-200 dark:border-gray-600 pt-6">
-            <h4 className="text-base font-medium text-gray-900 dark:text-white mb-4">
-              Contacto
-            </h4>
+          <div className="pt-6">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <FormField label="Email" required>
                 <input
@@ -511,9 +512,6 @@ export const UserProfile: React.FC<UserProfileProps> = () => {
                   disabled
                   className="bg-gray-100 border border-gray-300 text-gray-500 text-sm rounded-lg cursor-not-allowed block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-gray-400"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  No se puede cambiar el email
-                </p>
               </FormField>
 
               <FormField 
@@ -526,11 +524,19 @@ export const UserProfile: React.FC<UserProfileProps> = () => {
                 )}
               >
                 <div className="flex gap-3">
+                  <div className="w-20">
+                    <input
+                      {...profileForm.register('phonePrefix')}
+                      type="text"
+                      className={`${inputClasses} text-center`}
+                      placeholder="+34"
+                    />
+                  </div>
                   <input
                     {...profileForm.register('phone')}
                     type="tel"
-                    className={inputClasses}
-                    placeholder="+34612345678"
+                    className={`${inputClasses} flex-1`}
+                    placeholder="612345678"
                   />
                   {!user?.phoneVerified && verificationStep === 'none' && (
                     <button
@@ -576,12 +582,8 @@ export const UserProfile: React.FC<UserProfileProps> = () => {
           </div>
 
           {/* Billing Information */}
-          <div className="border-t border-gray-200 dark:border-gray-600 pt-6">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
-              <h4 className="text-base font-medium text-gray-900 dark:text-white">
-                Facturación
-              </h4>
-              
+          <div className="pt-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
               <div className="flex items-center">
                 <input
                   id="use-same-billing"
@@ -593,6 +595,25 @@ export const UserProfile: React.FC<UserProfileProps> = () => {
                 <label htmlFor="use-same-billing" className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
                   Usar la misma información para facturación
                 </label>
+              </div>
+              <div className="lg:block hidden">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className={buttonClasses}
+                >
+                  {isLoading ? (
+                    <>
+                      <svg className="inline mr-2 w-4 h-4 text-gray-200 animate-spin dark:text-gray-600" fill="none" viewBox="0 0 100 101">
+                        <path d="m100 50.5908c0 27.2013-22.0988 49.2999-49.2999 49.2999s-49.3-22.0986-49.3-49.2999c0-27.2013 22.0987-49.3 49.3-49.3s49.2999 22.0986 49.2999 49.3z" fill="currentColor"/>
+                        <path d="m93.9676 39.0409c0-15.1-12.3-27.4-27.4-27.4s-27.4 12.3-27.4 27.4c0 15.1 12.3 27.4 27.4 27.4s27.4-12.3 27.4-27.4z" fill="currentFill"/>
+                      </svg>
+                      Guardando...
+                    </>
+                  ) : (
+                    'Guardar'
+                  )}
+                </button>
               </div>
             </div>
             
@@ -727,8 +748,8 @@ export const UserProfile: React.FC<UserProfileProps> = () => {
             </div>
           </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-end border-t border-gray-200 dark:border-gray-600 pt-6">
+          {/* Mobile Submit Button */}
+          <div className="flex justify-end pt-6 lg:hidden">
             <button
               type="submit"
               disabled={isLoading}
@@ -743,7 +764,7 @@ export const UserProfile: React.FC<UserProfileProps> = () => {
                   Guardando...
                 </>
               ) : (
-                'Guardar Cambios'
+                'Guardar'
               )}
             </button>
           </div>
@@ -795,7 +816,7 @@ export const UserProfile: React.FC<UserProfileProps> = () => {
             </FormField>
           </div>
 
-          <div className="flex justify-end border-t border-gray-200 dark:border-gray-600 pt-6">
+          <div className="flex justify-end pt-6">
             <button
               type="submit"
               disabled={isLoading}
@@ -810,7 +831,7 @@ export const UserProfile: React.FC<UserProfileProps> = () => {
                   Actualizando...
                 </>
               ) : (
-                'Actualizar Contraseña'
+                'Actualizar'
               )}
             </button>
           </div>

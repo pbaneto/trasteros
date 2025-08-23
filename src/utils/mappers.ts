@@ -6,8 +6,25 @@ interface RawUser {
   email: string;
   first_name: string;
   last_name: string;
+  dni?: string;
+  // Personal address fields
+  street?: string;
+  street_number?: string;
+  postal_code?: string;
+  municipality?: string;
+  province?: string;
   phone?: string;
   phone_verified: boolean;
+  // Billing information fields
+  billing_same_as_personal?: boolean;
+  billing_type?: string;
+  billing_name?: string;
+  billing_nif_cif?: string;
+  billing_street?: string;
+  billing_street_number?: string;
+  billing_postal_code?: string;
+  billing_municipality?: string;
+  billing_province?: string;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -30,7 +47,6 @@ interface RawRental {
   start_date: string;
   end_date: string;
   price: number;
-  insurance_amount: number;
   status: 'active' | 'expired' | 'cancelled';
   stripe_payment_intent_id?: string;
   ttlock_code?: string;
@@ -56,8 +72,6 @@ interface RawPayment {
   // Payment details
   months_paid: number;
   unit_price: number;
-  insurance_included: boolean;
-  insurance_price: number;
   total_amount: number;
   rental?: {
     id: string;
@@ -76,8 +90,25 @@ export const transformUser = (rawUser: RawUser): User => ({
   email: rawUser.email,
   firstName: rawUser.first_name,
   lastName: rawUser.last_name,
+  dni: rawUser.dni,
+  // Personal address fields
+  street: rawUser.street,
+  streetNumber: rawUser.street_number,
+  postalCode: rawUser.postal_code,
+  municipality: rawUser.municipality,
+  province: rawUser.province,
   phone: rawUser.phone,
   phoneVerified: rawUser.phone_verified,
+  // Billing information fields
+  billingSameAsPersonal: rawUser.billing_same_as_personal,
+  billingType: rawUser.billing_type,
+  billingName: rawUser.billing_name,
+  billingNifCif: rawUser.billing_nif_cif,
+  billingStreet: rawUser.billing_street,
+  billingStreetNumber: rawUser.billing_street_number,
+  billingPostalCode: rawUser.billing_postal_code,
+  billingMunicipality: rawUser.billing_municipality,
+  billingProvince: rawUser.billing_province,
   active: rawUser.active,
   createdAt: rawUser.created_at,
   updatedAt: rawUser.updated_at,
@@ -106,7 +137,6 @@ export const transformRental = (rawRental: RawRental): Rental => ({
   startDate: rawRental.start_date,
   endDate: rawRental.end_date,
   price: rawRental.price,
-  insuranceAmount: rawRental.insurance_amount,
   status: rawRental.status,
   stripePaymentIntentId: rawRental.stripe_payment_intent_id,
   ttlockCode: rawRental.ttlock_code,
@@ -135,8 +165,6 @@ export const transformPayment = (rawPayment: RawPayment): Payment => ({
   // Payment details
   monthsPaid: rawPayment.months_paid,
   unitPrice: rawPayment.unit_price,
-  insuranceIncluded: rawPayment.insurance_included,
-  insurancePrice: rawPayment.insurance_price, 
   totalAmount: rawPayment.total_amount,
   rental: rawPayment.rental ? {
     id: rawPayment.rental.id,

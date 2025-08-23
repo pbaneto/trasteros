@@ -39,8 +39,6 @@ export type Database = {
           billing_cycle_end: string | null
           billing_cycle_start: string | null
           id: string
-          insurance_included: boolean | null
-          insurance_price: number | null
           is_subscription_active: boolean | null
           months_paid: number | null
           next_billing_date: string | null
@@ -58,8 +56,6 @@ export type Database = {
           billing_cycle_end?: string | null
           billing_cycle_start?: string | null
           id?: string
-          insurance_included?: boolean | null
-          insurance_price?: number | null
           is_subscription_active?: boolean | null
           months_paid?: number | null
           next_billing_date?: string | null
@@ -77,8 +73,6 @@ export type Database = {
           billing_cycle_end?: string | null
           billing_cycle_start?: string | null
           id?: string
-          insurance_included?: boolean | null
-          insurance_price?: number | null
           is_subscription_active?: boolean | null
           months_paid?: number | null
           next_billing_date?: string | null
@@ -108,7 +102,6 @@ export type Database = {
           created_at: string | null
           end_date: string
           id: string
-          insurance_amount: number | null
           months_paid: number | null
           next_payment_date: string | null
           payment_type: string | null
@@ -129,7 +122,6 @@ export type Database = {
           created_at?: string | null
           end_date: string
           id?: string
-          insurance_amount?: number | null
           months_paid?: number | null
           next_payment_date?: string | null
           payment_type?: string | null
@@ -150,7 +142,6 @@ export type Database = {
           created_at?: string | null
           end_date?: string
           id?: string
-          insurance_amount?: number | null
           months_paid?: number | null
           next_payment_date?: string | null
           payment_type?: string | null

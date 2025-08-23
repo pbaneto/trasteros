@@ -54,7 +54,6 @@ CREATE TABLE IF NOT EXISTS rentals (
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     price DECIMAL(10,2) NOT NULL,
-    insurance_amount DECIMAL(10,2) DEFAULT 0.00,
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'expired', 'cancelled', 'pending')),
     stripe_payment_intent_id VARCHAR(255),
     ttlock_code VARCHAR(20),
@@ -90,8 +89,6 @@ CREATE TABLE IF NOT EXISTS payments (
     -- Payment detail columns
     months_paid INTEGER DEFAULT 1 CHECK (months_paid >= 1),
     unit_price DECIMAL(10,2),
-    insurance_included BOOLEAN DEFAULT FALSE,
-    insurance_price DECIMAL(10,2) DEFAULT 0.00,
     total_amount DECIMAL(10,2)
 );
 
@@ -121,7 +118,6 @@ CREATE INDEX IF NOT EXISTS idx_payments_stripe_invoice_id ON payments(stripe_inv
 CREATE INDEX IF NOT EXISTS idx_payments_next_billing_date ON payments(next_billing_date);
 -- Payment detail indexes
 CREATE INDEX IF NOT EXISTS idx_payments_months_paid ON payments(months_paid);
-CREATE INDEX IF NOT EXISTS idx_payments_insurance_included ON payments(insurance_included);
 CREATE INDEX IF NOT EXISTS idx_payments_total_amount ON payments(total_amount);
 
 -- Set up Row Level Security (RLS)
@@ -433,8 +429,6 @@ COMMENT ON COLUMN payments.is_subscription_active IS 'Whether the subscription i
 COMMENT ON COLUMN payments.next_billing_date IS 'Next scheduled billing date for subscriptions';
 COMMENT ON COLUMN payments.months_paid IS 'Number of months covered by this payment';
 COMMENT ON COLUMN payments.unit_price IS 'Monthly unit rental price at time of payment';
-COMMENT ON COLUMN payments.insurance_included IS 'Whether insurance was included in this payment';
-COMMENT ON COLUMN payments.insurance_price IS 'Insurance cost included in this payment (one-time fee)';
 COMMENT ON COLUMN payments.total_amount IS 'Total amount paid including taxes';
 COMMENT ON COLUMN payments.stripe_invoice_id IS 'Stripe invoice ID for downloadable invoices (subscription payments)';
 COMMENT ON COLUMN rentals.stripe_subscription_id IS 'Stripe subscription ID for subscription-based rentals';

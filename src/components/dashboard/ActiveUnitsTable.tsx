@@ -4,7 +4,6 @@ import { formatPrice } from '../../utils/stripe';
 import { supabase, supabaseConfig } from '../../utils/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { toast } from 'react-toastify';
 import { transformRentals, transformPayments } from '../../utils/mappers';
 
@@ -77,8 +76,6 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
           is_subscription_active,
           next_billing_date,
           unit_price,
-          insurance_included,
-          insurance_price,
           total_amount,
           rental:rentals(
             id,
@@ -174,7 +171,7 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
     const endDate = new Date(rental.endDate + 'T00:00:00');
     const lastDay = new Date(endDate.getTime() + 7 * 24 * 60 * 60 * 1000);
     
-    return format(lastDay, 'dd MMMM yyyy', { locale: es });
+    return format(lastDay, 'd/M/yyyy');
   };
 
   const shouldShowVerCodigo = (rental: Rental): boolean => {
@@ -323,16 +320,6 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Mis Trasteros
-        </h3>
-        <span className="text-sm text-gray-500 dark:text-gray-400">
-          {rentals.length} {rentals.length === 1 ? 'trastero' : 'trasteros'}
-        </span>
-      </div>
-
       {/* Professional Cards Grid - Wider on Desktop */}
       <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-1">
         {rentals.map((rental) => (
@@ -371,26 +358,37 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
                 </div>
               )}
 
-              {/* Two-Column Layout for Wider Cards */}
-              <div className="grid 2xl:grid-cols-2 gap-6">
+              {/* Responsive Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left Column - Unit Details */}
                 <div className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
-                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Renovación:</span>
-                      <span className={`text-sm font-semibold ${isExpiringSoon(rental.endDate) ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-white'}`}>
-                        {rental.endDate ? format(new Date(rental.endDate + 'T00:00:00'), 'dd MMM yyyy', { locale: es }) : 'No definido'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between py-2">
-                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Precio mensual:</span>
-                      <div className="text-right">
-                        <span className="text-xl font-bold text-gray-900 dark:text-white">
-                          {formatPrice(rental.price + (rental.insuranceAmount || 0))}
-                        </span>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">suscripción</p>
-                      </div>
-                    </div>
+                  <div className="overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
+                        <tr className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Renovación:
+                          </td>                          
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Precio mensual:
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold">
+                            <span className={isExpiringSoon(rental.endDate) ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-white'}>
+                              {rental.endDate ? format(new Date(rental.endDate + 'T00:00:00'), 'd/M/yyyy') : 'No definido'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div className="text-right">
+                              <span className="text-xl font-bold text-gray-900 dark:text-white">
+                                {formatPrice(rental.price)}
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      </thead>
+                    </table>
                   </div>
                 </div>
 
@@ -400,34 +398,34 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
                     {shouldShowVerCodigo(rental) && (
                       <button
                         onClick={() => toggleAccessCode(rental.id)}
-                        className="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-center text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-900 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-800 dark:focus:ring-blue-800"
+                        className="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-center text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-900 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-800 dark:focus:ring-blue-800 min-h-[44px] touch-manipulation"
                       >
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
                         </svg>
-                        Ver código de acceso
+                        <span className="truncate">Ver código de acceso</span>
                       </button>
                     )}
                     
                     <button
                       onClick={() => toggleRentalExpansion(rental.id)}
-                      className="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-center text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600 dark:focus:ring-gray-700"
+                      className="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-center text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600 dark:focus:ring-gray-700 min-h-[44px] touch-manipulation"
                     >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      Ver facturas
+                      <span className="truncate">Ver facturas</span>
                     </button>
 
                     {rental.status === 'active' && (
                       <button
                         onClick={() => handleCancelClick(rental)}
-                        className="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-center text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 focus:ring-4 focus:outline-none focus:ring-red-300 dark:bg-red-900 dark:border-red-600 dark:text-red-300 dark:hover:bg-red-800 dark:focus:ring-red-800"
+                        className="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-center text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 focus:ring-4 focus:outline-none focus:ring-red-300 dark:bg-red-900 dark:border-red-600 dark:text-red-300 dark:hover:bg-red-800 dark:focus:ring-red-800 min-h-[44px] touch-manipulation"
                       >
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                        Cancelar suscripción
+                        <span className="truncate">Cancelar suscripción</span>
                       </button>
                     )}
                   </div>
@@ -461,7 +459,7 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
               {/* Expandable Invoice History - Table Format */}
               {expandedRentals.has(rental.id) && (
                 <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <h6 className="text-sm font-semibold text-gray-900 dark:text-white mb-6 uppercase tracking-wide">Facturas</h6>
+                  <h6 className="text-sm font-semibold text-gray-900 dark:text-white mb-6 uppercase tracking-wide">Pagos</h6>
                   {loadingPayments.has(rental.id) ? (
                     <div className="animate-pulse">
                       <div className="h-4 bg-gray-200 rounded w-full mb-4 dark:bg-gray-700"></div>
@@ -475,65 +473,76 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
                     <div className="overflow-hidden">
                       {rentalPayments[rental.id]?.length > 0 ? (
                         <div className="overflow-x-auto">
-                          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead className="bg-gray-50 dark:bg-gray-800">
-                              <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                  Fecha
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                  Total
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                  Estado
-                                </th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                  Acciones
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
-                              {rentalPayments[rental.id].map((payment) => (
-                                <tr key={payment.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                    {payment.paymentDate 
-                                      ? format(new Date(payment.paymentDate), 'dd MMM yyyy', { locale: es })
-                                      : 'Fecha pendiente'
-                                    }
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                    {formatPrice(payment.totalAmount)}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                      payment.status === 'succeeded' 
-                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                                        : payment.status === 'pending'
-                                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                                        : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                                    }`}>
-                                      {payment.status === 'succeeded' ? 'Pagado' : 
-                                       payment.status === 'pending' ? 'Pendiente' : 'Fallido'}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    {payment.status === 'succeeded' && (payment.stripeInvoiceId || payment.stripePaymentIntentId) && (
-                                      <button
-                                        onClick={() => handleDownloadInvoice(payment)}
-                                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600"
-                                      >
-                                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        Descargar
-                                      </button>
-                                    )}
-                                  </td>
+                            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                              <thead className="bg-gray-50 dark:bg-gray-800">
+                                <tr>
+                                  <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Fecha
+                                  </th>
+                                  <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Total
+                                  </th>
+                                  <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Estado
+                                  </th>
+                                  <th className="px-2 md:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <span className="hidden md:inline">Acciones</span>
+                                    <span className="md:hidden">PDF</span>
+                                  </th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
+                                {rentalPayments[rental.id].map((payment) => (
+                                  <tr key={payment.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                    <td className="px-3 md:px-6 py-2 md:py-4 text-xs md:text-sm text-gray-900 dark:text-white">
+                                      <div className="truncate max-w-[80px] md:max-w-none">
+                                        {payment.paymentDate 
+                                          ? format(new Date(payment.paymentDate), 'd/M/yyyy')
+                                          : 'Pendiente'
+                                        }
+                                      </div>
+                                    </td>
+                                    <td className="px-3 md:px-6 py-2 md:py-4 text-xs md:text-sm font-medium text-gray-900 dark:text-white">
+                                      <div className="truncate max-w-[60px] md:max-w-none">
+                                        {formatPrice(payment.totalAmount)}
+                                      </div>
+                                    </td>
+                                    <td className="px-3 md:px-6 py-2 md:py-4">
+                                      <span className={`inline-flex items-center px-1.5 md:px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                        payment.status === 'succeeded' 
+                                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                          : payment.status === 'pending'
+                                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                                          : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                                      }`}>
+                                        <span className="hidden md:inline">
+                                          {payment.status === 'succeeded' ? 'Pagado' : 
+                                           payment.status === 'pending' ? 'Pendiente' : 'Fallido'}
+                                        </span>
+                                        <span className="md:hidden">
+                                          {payment.status === 'succeeded' ? '✓' : 
+                                           payment.status === 'pending' ? '⏳' : '✗'}
+                                        </span>
+                                      </span>
+                                    </td>
+                                    <td className="px-2 md:px-6 py-2 md:py-4 text-right text-xs md:text-sm font-medium">
+                                      {payment.status === 'succeeded' && (payment.stripeInvoiceId || payment.stripePaymentIntentId) && (
+                                        <button
+                                          onClick={() => handleDownloadInvoice(payment)}
+                                          className="inline-flex items-center px-2 md:px-3 py-1 md:py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600"
+                                        >
+                                          <svg className="w-3 h-3 md:w-4 md:h-4 md:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                          </svg>
+                                          <span className="hidden md:inline">Descargar</span>
+                                        </button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                       ) : (
                         <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
                           <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

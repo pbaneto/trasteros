@@ -44,9 +44,6 @@ serve(async (req) => {
     const { 
       unitId, 
       months, 
-      insurance, 
-      insurancePrice,
-      insuranceCoverage,
       unitPrice, 
       totalPrice,
       unitSize,
@@ -83,25 +80,6 @@ serve(async (req) => {
       quantity: 1,
     })
 
-    // Agregar seguro si se seleccionó (también recurrente)
-    if (insurance && insurancePrice > 0) {
-      const formatPrice = (amount: number) => `€${amount.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-      
-      lineItems.push({
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: 'Seguro de contenido',
-            description: `Cobertura hasta ${formatPrice(insuranceCoverage || 0)} contra daños, robos e incendios`,
-          },
-          unit_amount: Math.round(insurancePrice * 100),
-          recurring: {
-            interval: 'month',
-          },
-        },
-        quantity: 1,
-      })
-    } 
 
     console.log('billingInfo', billingInfo)
     console.log('user', user)
@@ -135,9 +113,6 @@ serve(async (req) => {
         unitId: unitId.toString(),
         months: months.toString(),
         paymentType: 'subscription',
-        insurance: insurance.toString(),
-        insurancePrice: (insurancePrice || 0).toString(),
-        insuranceCoverage: insuranceCoverage.toString(),
         unitSize: unitSize.toString(),
         unitPrice: (unitPrice || 0).toString(),
         totalPrice: totalPrice.toString(),

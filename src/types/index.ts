@@ -4,6 +4,7 @@ export interface User {
   firstName: string;
   lastName: string;
   dni?: string;
+  // Personal address fields
   street?: string;
   streetNumber?: string;
   postalCode?: string;
@@ -11,6 +12,16 @@ export interface User {
   province?: string;
   phone?: string;
   phoneVerified: boolean;
+  // Billing information fields
+  billingSameAsPersonal?: boolean;
+  billingType?: string;
+  billingName?: string;
+  billingNifCif?: string;
+  billingStreet?: string;
+  billingStreetNumber?: string;
+  billingPostalCode?: string;
+  billingMunicipality?: string;
+  billingProvince?: string;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -33,7 +44,6 @@ export interface Rental {
   startDate: string;
   endDate: string;
   price: number;
-  insuranceAmount: number;
   status: 'active' | 'expired' | 'cancelled';
   stripePaymentIntentId?: string;
   ttlockCode?: string;
@@ -59,8 +69,6 @@ export interface Payment {
   // Payment details
   monthsPaid: number;
   unitPrice: number;
-  insuranceIncluded: boolean;
-  insurancePrice: number;
   totalAmount: number;
   rental?: {
     id: string;
@@ -81,6 +89,7 @@ export interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   resendConfirmation: (email: string) => Promise<void>;
   verifyOTP: (email: string, token: string) => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 export interface PaymentMethod {
@@ -95,6 +104,5 @@ export interface PaymentMethod {
 export interface CheckoutData {
   unitId: string;
   paymentMethodId: string;
-  includeInsurance: boolean;
 }
 

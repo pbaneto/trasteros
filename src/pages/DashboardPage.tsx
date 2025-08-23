@@ -61,6 +61,11 @@ export const DashboardPage: React.FC = () => {
     } else {
       setSearchParams({});
     }
+    // Close reservation wizard if open when switching tabs
+    if (showReservationWizard) {
+      setShowReservationWizard(false);
+      setInitialWizardSize(null);
+    }
   };
 
   const handleCancelSubscription = (rental: Rental) => {
@@ -84,88 +89,83 @@ export const DashboardPage: React.FC = () => {
       <div className="space-y-8">
         {/* Welcome Section */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 dark:from-blue-700 dark:to-blue-800 overflow-hidden">
-          <div className="px-6 py-8 sm:px-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div className="mb-4 sm:mb-0">
-                <h1 className="text-2xl font-bold text-white">
-                  ¡Hola, {user?.firstName}!
-                </h1>
-                <p className="text-blue-100 mt-1">Gestiona tus trasteros alquilados y su estado.</p>
-              </div>
-              <div>
-                <button
-                  onClick={() => setShowReservationWizard(true)}
-                  className="text-blue-700 bg-white hover:bg-gray-50 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-100 dark:hover:bg-gray-200 dark:focus:ring-blue-800 w-full sm:w-auto transition-colors"
-                >
-                  Reservar trastero
-                </button>
-              </div>
+          <div className="px-5 py-3 sm:px-8 flex items-center justify-between min-h-[60px]">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-white hidden md:block">
+                ¡Hola, {user?.firstName}!
+              </h1>
             </div>
-          </div>
-          
-          {/* Tab Navigation */}
-          <div className="border-t border-blue-500/30">
-            <div className="px-6 sm:px-8">
+            
+            <div className="flex items-center space-x-8">
               <nav className="flex space-x-8">
                 <button
                   onClick={() => handleTabChange('trasteros')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  className={`py-2 px-1 border-b-2 font-medium text-md transition-colors ${
                     activeTab === 'trasteros'
                       ? 'border-white text-white'
                       : 'border-transparent text-blue-200 hover:text-blue-100 hover:border-blue-300'
                   }`}
                 >
                   <div className="flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
-                    Mis Trasteros
+                    <span className="hidden sm:inline">Mis Trasteros</span>
                   </div>
                 </button>
                 
                 <button
                   onClick={() => handleTabChange('perfil')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  className={`py-2 px-1 border-b-2 font-medium text-md transition-colors ${
                     activeTab === 'perfil'
                       ? 'border-white text-white'
                       : 'border-transparent text-blue-200 hover:text-blue-100 hover:border-blue-300'
                   }`}
                 >
                   <div className="flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    Mi Perfil
+                    <span className="hidden sm:inline">Mi Perfil</span>
                   </div>
                 </button>
               </nav>
+              
+              <button
+                onClick={() => setShowReservationWizard(true)}
+                className="text-blue-700 bg-white hover:bg-gray-50 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-100 dark:hover:bg-gray-200 dark:focus:ring-blue-800 transition-colors"
+              >
+                <span className="hidden sm:inline">Alquilar trastero</span>
+                <span className="sm:hidden">Alquilar</span>
+              </button>
             </div>
           </div>
         </div>
-        {/* Tab Content */}
-        {activeTab === 'trasteros' && (
+        {/* Reservation Wizard - Show regardless of active tab */}
+        {showReservationWizard ? (
+          <ReservationWizard 
+            onClose={() => {
+              setShowReservationWizard(false);
+              setInitialWizardSize(null);
+            }} 
+            initialSize={initialWizardSize}
+          />
+        ) : (
           <>
-            {!showReservationWizard ? (
+            {/* Tab Content */}
+            {activeTab === 'trasteros' && (
               <div className="space-y-8">
                 {/* Units Table */}
                 <ActiveUnitsTable
                   onCancelSubscription={handleCancelSubscription}
                 />
               </div>
-            ) : (
-              <ReservationWizard 
-                onClose={() => {
-                  setShowReservationWizard(false);
-                  setInitialWizardSize(null);
-                }} 
-                initialSize={initialWizardSize}
-              />
+            )}
+
+            {activeTab === 'perfil' && (
+              <UserProfile initialTab={searchParams.get('profileTab') as any || 'profile'} />
             )}
           </>
-        )}
-
-        {activeTab === 'perfil' && (
-          <UserProfile initialTab={searchParams.get('profileTab') as any || 'profile'} />
         )}
       </div>
       {/* Auth Modal */}

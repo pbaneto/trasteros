@@ -1,21 +1,18 @@
 import React from 'react';
 import { formatPrice } from '../../utils/stripe';
-import { INSURANCE_PRICE, INSURANCE_COVERAGE, getPriceBySize } from '../../utils/constants';
+import { getPriceBySize } from '../../utils/constants';
 
 interface PricingSummaryProps {
   unitSize: number;
-  includeInsurance: boolean;
   className?: string;
 }
 
 export const PricingSummary: React.FC<PricingSummaryProps> = ({
   unitSize,
-  includeInsurance,
   className = '',
 }) => {
   const unitPrice = getPriceBySize(unitSize);
-  const insurancePrice = includeInsurance ? INSURANCE_PRICE : 0;
-  const totalPrice = unitPrice + insurancePrice;
+  const totalPrice = unitPrice;
 
   return (
     <div className={`bg-gray-50 rounded-lg p-6 ${className}`}>
@@ -38,21 +35,6 @@ export const PricingSummary: React.FC<PricingSummaryProps> = ({
           </div>
         </div>
 
-        {includeInsurance && (
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium text-gray-900">
-                Seguro de contenido
-              </div>
-              <div className="text-sm text-gray-500">
-                Cobertura hasta {formatPrice(INSURANCE_COVERAGE)}
-              </div>
-            </div>
-            <div className="text-sm font-medium text-gray-900">
-              {formatPrice(insurancePrice)}
-            </div>
-          </div>
-        )}
 
         <div className="border-t border-gray-200 pt-3">
           <div className="flex items-center justify-between">
@@ -102,11 +84,6 @@ export const PricingSummary: React.FC<PricingSummaryProps> = ({
         <p>
           * Pago único al contratar. Sin compromisos de permanencia.
         </p>
-        {includeInsurance && (
-          <p className="mt-1">
-            * El seguro cubre daños accidentales y robo hasta {formatPrice(INSURANCE_COVERAGE)}.
-          </p>
-        )}
       </div>
     </div>
   );
