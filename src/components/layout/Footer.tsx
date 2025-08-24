@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { ROUTES } from '../../utils/constants';
 
 export const Footer: React.FC = () => {
   return (
@@ -92,9 +93,9 @@ export const Footer: React.FC = () => {
                     </a>
                   </li>
                   <li>
-                    <a href="#" className="text-base text-gray-300 hover:text-white">
+                    <Link to={ROUTES.CONDITIONS} className="text-base text-gray-300 hover:text-white">
                       Términos y Condiciones
-                    </a>
+                    </Link>
                   </li>
                   <li>
                     <a href="#" className="text-base text-gray-300 hover:text-white">

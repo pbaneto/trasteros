@@ -219,12 +219,33 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
     }
   };
 
-  const isExpiringSoon = (endDate: string | null | undefined) => {
+  const isExpiringSoon = (endDate: string | null | undefined, status: string) => {
     if (!endDate) return false;
     const expiry = new Date(endDate + 'T00:00:00');
     if (isNaN(expiry.getTime())) return false;
-    const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    return expiry <= thirtyDaysFromNow;
+    
+    // Only show for cancelled rentals if there are still days left to remove belongings
+    if (status === 'cancelled') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return expiry >= today;
+    }
+    
+    // Don't show expiring warning for active rentals - they're active, not expiring
+    return false;
+  };
+
+  const getRemainingDays = (endDate: string | null | undefined) => {
+    if (!endDate) return 0;
+    const expiry = new Date(endDate + 'T00:00:00');
+    if (isNaN(expiry.getTime())) return 0;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return Math.max(0, diffDays);
   };
 
 
@@ -344,15 +365,20 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
               </div>
 
               {/* Expiry Warning */}
-              {rental.status === 'active' && isExpiringSoon(rental.endDate) && (
+              {isExpiringSoon(rental.endDate, rental.status) && (
                 <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg dark:bg-orange-900/20 dark:border-orange-800">
                   <div className="flex items-center">
                     <svg className="w-5 h-5 text-orange-600 dark:text-orange-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
                     </svg>
-                    <span className="text-base font-medium text-orange-800 dark:text-orange-200">
-                      Próximo a vencer
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-base font-medium text-orange-800 dark:text-orange-200">
+                        Tiempo restante para retirar pertenencias
+                      </span>
+                      <span className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                        {getRemainingDays(rental.endDate)} días restantes
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -374,7 +400,7 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
                         </tr>
                         <tr className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold">
-                            <span className={isExpiringSoon(rental.endDate) ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-white'}>
+                            <span className={isExpiringSoon(rental.endDate, rental.status) ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-white'}>
                               {rental.endDate ? format(new Date(rental.endDate + 'T00:00:00'), 'd/M/yyyy') : 'No definido'}
                             </span>
                           </td>

@@ -11,6 +11,7 @@ import { LoadingSpinner } from './components/ui/LoadingSpinner';
 // Pages
 import { HomePage } from './pages/HomePage';
 import { DashboardPage } from './pages/DashboardPage';
+import ConditionsPage from './pages/ConditionsPage';
 
 // Auth Components
 import { PasswordReset } from './components/auth/PasswordReset';
@@ -81,6 +82,7 @@ function App() {
             <Routes>
               {/* Public Routes */}
               <Route path={ROUTES.HOME} element={<HomePage />} />
+              <Route path={ROUTES.CONDITIONS} element={<ConditionsPage />} />
               
               {/* Auth Routes - redirect to dashboard if already logged in */}
               <Route 

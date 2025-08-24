@@ -41,8 +41,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth }) => {
           {/* Desktop User Menu or Auth Buttons */}
           <div className="hidden md:flex items-center justify-between w-full">
             <Link to={ROUTES.HOME} className="flex items-center hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">T</span>
+              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center p-2">
+                <img 
+                  src="/images/file.svg" 
+                  alt="Trasteros Logo" 
+                  className="w-full h-full"
+                  style={{ filter: 'brightness(0) invert(1)' }}
+                />
               </div>
               <span className="ml-2 text-xl font-semibold text-gray-900 dark:text-white">Trasteros Las Rozas</span>
             </Link>
@@ -97,8 +102,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth }) => {
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center justify-between w-full">
             <Link to={ROUTES.HOME} className="flex items-center hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">T</span>
+              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center p-2">
+                <img 
+                  src="/images/file.svg" 
+                  alt="Trasteros Logo" 
+                  className="w-full h-full"
+                  style={{ filter: 'brightness(0) invert(1)' }}
+                />
               </div>
               <span className="ml-2 text-lg font-semibold text-gray-900 dark:text-white">Trasteros</span>
             </Link>
