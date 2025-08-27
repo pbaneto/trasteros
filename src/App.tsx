@@ -7,11 +7,13 @@ import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ROUTES } from './utils/constants';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import { CookieNotice } from './components/common/CookieNotice';
 
 // Pages
 import { HomePage } from './pages/HomePage';
 import { DashboardPage } from './pages/DashboardPage';
 import ConditionsPage from './pages/ConditionsPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 
 // Auth Components
 import { PasswordReset } from './components/auth/PasswordReset';
@@ -83,6 +85,7 @@ function App() {
               {/* Public Routes */}
               <Route path={ROUTES.HOME} element={<HomePage />} />
               <Route path={ROUTES.CONDITIONS} element={<ConditionsPage />} />
+              <Route path={ROUTES.PRIVACY} element={<PrivacyPolicyPage />} />
               
               {/* Auth Routes - redirect to dashboard if already logged in */}
               <Route 
@@ -131,6 +134,9 @@ function App() {
               pauseOnHover
               theme="light"
             />
+
+            {/* Cookie Notice */}
+            <CookieNotice />
           </div>
         </Router>
       </AuthProvider>

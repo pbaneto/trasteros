@@ -88,19 +88,14 @@ export const Footer: React.FC = () => {
                 </h3>
                 <ul className="mt-4 space-y-4">
                   <li>
-                    <a href="#" className="text-base text-gray-300 hover:text-white">
+                    <Link to={ROUTES.PRIVACY} className="text-base text-gray-300 hover:text-white">
                       Política de Privacidad
-                    </a>
+                    </Link>
                   </li>
                   <li>
                     <Link to={ROUTES.CONDITIONS} className="text-base text-gray-300 hover:text-white">
                       Términos y Condiciones
                     </Link>
-                  </li>
-                  <li>
-                    <a href="#" className="text-base text-gray-300 hover:text-white">
-                      Cookies
-                    </a>
                   </li>
                 </ul>
               </div>
@@ -111,8 +106,8 @@ export const Footer: React.FC = () => {
                 </h3>
                 <ul className="mt-4 space-y-4">
                   <li>
-                    <a href="tel:+34900000000" className="text-base text-gray-300 hover:text-white">
-                      900 000 000
+                    <a href="tel:+34640723915" className="text-base text-gray-300 hover:text-white">
+                      640 723 915
                     </a>
                   </li>
                   <li>

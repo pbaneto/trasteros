@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from '../components/layout/Header';
 import { Footer } from '../components/layout/Footer';
 import { AuthModal, AuthMode } from '../components/auth/AuthModal';
@@ -15,6 +15,10 @@ const ConditionsPage: React.FC = () => {
   const closeAuthModal = () => {
     setIsAuthModalOpen(false);
   };
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">

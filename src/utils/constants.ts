@@ -31,6 +31,7 @@ export const ROUTES = {
   RESET_PASSWORD: '/reset-password',
   EMAIL_CONFIRMATION_PENDING: '/email-confirmation-pending',
   CONDITIONS: '/condiciones',
+  PRIVACY: '/politica-privacidad',
 } as const;
 
 // Helper function to get price by size

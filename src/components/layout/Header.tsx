@@ -74,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth }) => {
                   src="/images/file.svg" 
                   alt="Trasteros Logo" 
                   className="w-full h-full"
-                  style={{ filter: (isScrolled || !isHomePage) ? 'brightness(0) saturate(100%) invert(27%) sepia(96%) saturate(5490%) hue-rotate(217deg) brightness(97%) contrast(98%)' : 'invert(1)' }}
+                  style={{ filter: (isScrolled || !isHomePage) ? 'brightness(0) saturate(100%) invert(27%) sepia(96%) saturate(5490%) hue-rotate(217deg) brightness(97%) contrast(98%)' : 'none' }}
                 />
               </div>
               {/* <span className={`ml-3 text-lg font-semibold transition-colors ${
@@ -157,7 +157,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAuth }) => {
                   src="/images/file.svg" 
                   alt="Trasteros Logo" 
                   className="w-full h-full"
-                  style={{ filter: (isScrolled || !isHomePage) ? 'brightness(0) saturate(100%) invert(27%) sepia(96%) saturate(5490%) hue-rotate(217deg) brightness(97%) contrast(98%)' : 'invert(1)' }}
+                  style={{ filter: (isScrolled || !isHomePage) ? 'brightness(0) saturate(100%) invert(27%) sepia(96%) saturate(5490%) hue-rotate(217deg) brightness(97%) contrast(98%)' : 'none' }}
                 />
               </div>
               {/* <span className={`ml-2 text-base font-semibold transition-colors ${
