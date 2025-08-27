@@ -148,6 +148,36 @@ export const ActiveUnitsTable: React.FC<ActiveUnitsTableProps> = ({
           : rental
       ));
 
+      // Send WhatsApp cancellation notice
+      try {
+        // Fetch user's phone number from database to ensure we have the verified number
+        const { data: userProfile, error: profileError } = await supabase
+          .from('users_profile')
+          .select('phone_number')
+          .eq('id', user?.id)
+          .single();
+
+        if (userProfile?.phone_number && !profileError) {
+          // Calculate evacuation deadline (last day to remove belongings)
+          const evacuationDate = rentalToCancel.endDate 
+            ? new Date(rentalToCancel.endDate + 'T00:00:00')
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Default 30 days from now if no end date
+
+          await supabase.functions.invoke('send-whatsapp-verification', {
+            body: {
+              phoneNumber: userProfile.phone_number,
+              messageType: 'cancellation_notice',
+              storageUnitNumber: rentalToCancel.unit?.unitNumber || 'N/A',
+              evacuationDeadline: evacuationDate.toISOString()
+            }
+          });
+          console.log('WhatsApp cancellation notice sent successfully');
+        }
+      } catch (whatsappError) {
+        console.error('Error sending WhatsApp cancellation notice:', whatsappError);
+        // Don't show error to user - cancellation was successful, WhatsApp is just a bonus
+      }
+
       toast.success('Trastero cancelado correctamente');
       setShowCancelModal(false);
       setRentalToCancel(null);

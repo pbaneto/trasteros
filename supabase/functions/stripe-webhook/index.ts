@@ -149,6 +149,39 @@ serve(async (req) => {
 
           console.log(`Subscription rental ${rental.id} created in active status`)
           
+          // Send WhatsApp rental confirmation
+          try {
+            const { data: user, error: userError } = await supabaseClient
+              .from('users_profile')
+              .select('phone_number, first_name')
+              .eq('id', userId)
+              .single()
+
+            if (user && user.phone_number && !userError) {
+              const { data: storageUnit, error: unitError } = await supabaseClient
+                .from('storage_units')
+                .select('unit_number')
+                .eq('id', unitId)
+                .single()
+
+              if (storageUnit && !unitError) {
+                await supabaseClient.functions.invoke('send-whatsapp-verification', {
+                  body: {
+                    phoneNumber: user.phone_number,
+                    messageType: 'rental_confirmation',
+                    storageUnitNumber: storageUnit.unit_number,
+                    accessCode: accessCode,
+                    rentalStartDate: startDate.toISOString()
+                  }
+                })
+                console.log(`WhatsApp rental confirmation sent to ${user.phone_number}`)
+              }
+            }
+          } catch (whatsappError) {
+            console.error('Error sending WhatsApp rental confirmation:', whatsappError)
+            // Don't throw - rental creation is more important than WhatsApp notification
+          }
+          
           // Create initial payment record for subscription
           const { error: paymentError } = await supabaseClient
             .from('payments')
@@ -242,6 +275,39 @@ serve(async (req) => {
           }
 
           console.log(`Single payment rental ${rental.id} created in active status`)
+          
+          // Send WhatsApp rental confirmation
+          try {
+            const { data: user, error: userError } = await supabaseClient
+              .from('users_profile')
+              .select('phone_number, first_name')
+              .eq('id', userId)
+              .single()
+
+            if (user && user.phone_number && !userError) {
+              const { data: storageUnit, error: unitError } = await supabaseClient
+                .from('storage_units')
+                .select('unit_number')
+                .eq('id', unitId)
+                .single()
+
+              if (storageUnit && !unitError) {
+                await supabaseClient.functions.invoke('send-whatsapp-verification', {
+                  body: {
+                    phoneNumber: user.phone_number,
+                    messageType: 'rental_confirmation',
+                    storageUnitNumber: storageUnit.unit_number,
+                    accessCode: accessCode,
+                    rentalStartDate: startDate.toISOString()
+                  }
+                })
+                console.log(`WhatsApp rental confirmation sent to ${user.phone_number}`)
+              }
+            }
+          } catch (whatsappError) {
+            console.error('Error sending WhatsApp rental confirmation:', whatsappError)
+            // Don't throw - rental creation is more important than WhatsApp notification
+          }
           
           // Create payment record for single payment
           const { error: paymentError } = await supabaseClient

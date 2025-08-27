@@ -95,18 +95,22 @@ export const HomePage: React.FC = () => {
     { 
       ...STORAGE_UNIT_SIZES.SMALL, 
       description: 'Perfecto para cajas y objetos pequeños',
+      image: '/images/2m2.png',
     },
     { 
       ...STORAGE_UNIT_SIZES.MEDIUM, 
       description: 'Ideal para muebles y electrodomésticos',
+      image: '/images/3m2.png',
     },
     { 
       ...STORAGE_UNIT_SIZES.LARGE, 
       description: 'Espacio amplio para mudanzas completas',
+      image: '/images/5m2_1.png',
     },
     { 
       ...STORAGE_UNIT_SIZES.XLARGE, 
       description: 'Espacio amplio para mudanzas completas',
+      image: '/images/6m2.png',
     },
   ];
 
@@ -165,44 +169,54 @@ export const HomePage: React.FC = () => {
             </p>
           </div>
 
-          <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2">
             {sizes.map((size) => (
               <div
                 key={size.size}
-                className="w-full max-w-sm mx-auto p-4 bg-white border border-gray-200 rounded-lg shadow-sm sm:p-8 dark:bg-gray-800 dark:border-gray-700"
+                className="flex items-center bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
               >
-                <h5 className="mb-4 text-xl font-medium text-gray-500 dark:text-gray-400">
-                  {size.label}
-                </h5>
-                <div className="flex items-baseline text-gray-900 dark:text-white">
-                  <span className="text-5xl font-extrabold tracking-tight">
-                    {formatPrice(size.price).replace('€', '')}
-                  </span>
-                  <span className="ms-1 text-xl font-normal text-gray-500 dark:text-gray-400">
-                    €/mes
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (user) {
-                      navigate(`${ROUTES.DASHBOARD}?wizard=true&size=${size.size}`);
-                    } else {
-                      openAuthModal('login');
+                <img
+                  className="object-cover h-auto w-32 sm:w-40 md:w-48 rounded-none rounded-s-lg"
+                  src={size.image}
+                  alt={`Trastero de ${size.label}`}
+                />
+                <div className="flex flex-col justify-between p-4 leading-normal flex-1">
+                  <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                    {size.label}
+                  </h5>
+                  <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                    {size.description}
+                  </p>
+                  <div className="flex items-baseline text-gray-900 dark:text-white mb-4">
+                    <span className="text-3xl font-extrabold tracking-tight">
+                      {formatPrice(size.price).replace('€', '')}
+                    </span>
+                    <span className="ms-1 text-lg font-normal text-gray-500 dark:text-gray-400">
+                      €/mes
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (user) {
+                        navigate(`${ROUTES.DASHBOARD}?wizard=true&size=${size.size}`);
+                      } else {
+                        openAuthModal('login');
+                      }
+                    }}
+                    disabled={unitsLoading}
+                    className={`font-medium rounded-lg text-sm px-5 py-3 transition-colors duration-200 md:w-auto ${
+                      unitsLoading
+                        ? 'text-gray-500 bg-gray-300 cursor-not-allowed'
+                        : 'text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-200 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-900'
+                    }`}
+                  >
+                    {unitsLoading 
+                      ? 'Cargando...'
+                      : 'Alquilar ahora'
                     }
-                  }}
-                  disabled={unitsLoading}
-                  className={`font-medium rounded-lg text-sm px-5 py-2.5 inline-flex justify-center w-full text-center ${
-                    unitsLoading
-                      ? 'text-gray-500 bg-gray-300 cursor-not-allowed'
-                      : 'text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-200 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-900'
-                  }`}
-                >
-                  {unitsLoading 
-                    ? 'Cargando...'
-                    : 'Alquilar ahora'
-                  }
-                </button>
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -223,7 +237,7 @@ export const HomePage: React.FC = () => {
 
           {/* Use Cases Section */}
           <div className="mt-20">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               {/* Family Storage */}
               <div className="group">
                 <div className="relative overflow-hidden rounded-xl shadow-xl mb-8 transform transition-all duration-300 hover:scale-105">
